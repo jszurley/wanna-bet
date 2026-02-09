@@ -12,10 +12,14 @@ const betsRoutes = require('./routes/bets');
 
 const app = express();
 
-// Security headers
+// Trust proxy for Railway
+app.set('trust proxy', 1);
+
+// Security headers - disable for static files
 app.use(helmet({
   contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
 // CORS
@@ -55,9 +59,22 @@ app.use('/api/auth/register', authLimiter);
 
 app.use(express.json({ limit: '10kb' }));
 
-// Serve static files in production
+// Serve static files in production with explicit MIME types
 const clientBuildPath = path.join(__dirname, '../../client/dist');
-app.use(express.static(clientBuildPath));
+app.use(express.static(clientBuildPath, {
+  maxAge: '1d',
+  setHeaders: (res, filePath) => {
+    // Ensure correct MIME types
+    if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+    } else if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+    } else if (filePath.endsWith('.html')) {
+      res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  }
+}));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -69,15 +86,23 @@ app.use('/api/auth', authRoutes);
 app.use('/api/connections', connectionsRoutes);
 app.use('/api/bets', betsRoutes);
 
-// Error handling
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+// Serve React app for non-API routes
+app.get('*', (req, res, next) => {
+  // Don't serve index.html for asset requests that failed
+  if (req.path.startsWith('/assets/')) {
+    return res.status(404).send('Not found');
+  }
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
 
-// Serve React app for non-API routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(clientBuildPath, 'index.html'));
+// Error handling - only for API routes
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  if (req.path.startsWith('/api/')) {
+    res.status(500).json({ error: 'Something went wrong!' });
+  } else {
+    res.status(500).send('Server error');
+  }
 });
 
 const PORT = process.env.PORT || 3001;
