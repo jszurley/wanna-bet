@@ -233,4 +233,40 @@ router.post('/:id/complete', auth, async (req, res) => {
   }
 });
 
+// Resolve dispute
+router.post('/:id/resolve', auth, async (req, res) => {
+  try {
+    const { winnerId, comment } = req.body;
+    const bet = await Bet.findById(req.params.id);
+
+    if (!bet) {
+      return res.status(404).json({ error: 'Bet not found' });
+    }
+
+    if (bet.creator_id !== req.user.id && bet.opponent_id !== req.user.id) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    if (!bet.disputed_at) {
+      return res.status(400).json({ error: 'Bet is not in disputed status' });
+    }
+
+    if (bet.completed_at) {
+      return res.status(400).json({ error: 'Bet already completed' });
+    }
+
+    // Validate winner if provided
+    const parsedWinnerId = winnerId ? parseInt(winnerId, 10) : null;
+    if (parsedWinnerId && parsedWinnerId !== bet.creator_id && parsedWinnerId !== bet.opponent_id) {
+      return res.status(400).json({ error: 'Winner must be one of the bet participants' });
+    }
+
+    const updated = await Bet.resolveDispute(bet.id, req.user.id, parsedWinnerId, comment);
+    res.json(updated);
+  } catch (error) {
+    console.error('Resolve dispute error:', error);
+    res.status(500).json({ error: 'Failed to resolve dispute' });
+  }
+});
+
 module.exports = router;

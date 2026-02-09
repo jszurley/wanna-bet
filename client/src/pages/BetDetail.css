@@ -203,6 +203,34 @@
   color: var(--text-secondary);
 }
 
+.history-title {
+  font-size: 0.875rem;
+  color: #92400e;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.history-title:first-of-type {
+  margin-top: 0;
+}
+
+.history-comment {
+  display: block;
+  font-style: italic;
+  font-size: 0.875rem;
+  color: #78350f;
+  margin-top: 0.25rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid #f59e0b;
+}
+
+.resolve-actions {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
 .bet-actions {
   margin-top: 1.5rem;
   padding-top: 1.5rem;

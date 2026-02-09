@@ -18,13 +18,17 @@ const Bet = {
               uo.name as opponent_name, uo.email as opponent_email,
               uw.name as winner_name,
               ucw.name as creator_selected_winner_name,
-              uow.name as opponent_selected_winner_name
+              uow.name as opponent_selected_winner_name,
+              ucrw.name as creator_resolution_winner_name,
+              uorw.name as opponent_resolution_winner_name
        FROM bets b
        JOIN users uc ON b.creator_id = uc.id
        JOIN users uo ON b.opponent_id = uo.id
        LEFT JOIN users uw ON b.winner_id = uw.id
        LEFT JOIN users ucw ON b.creator_selected_winner = ucw.id
        LEFT JOIN users uow ON b.opponent_selected_winner = uow.id
+       LEFT JOIN users ucrw ON b.creator_resolution_winner = ucrw.id
+       LEFT JOIN users uorw ON b.opponent_resolution_winner = uorw.id
        WHERE b.id = $1`,
       [id]
     );
@@ -240,6 +244,69 @@ const Bet = {
       [userId]
     );
     return result.rows;
+  },
+
+  // Resolve dispute (by one user)
+  async resolveDispute(id, userId, winnerId, comment) {
+    const bet = await this.findById(id);
+    if (!bet) return null;
+
+    let updateFields = [];
+    let params = [id];
+    let paramIndex = 2;
+
+    if (userId === bet.creator_id) {
+      updateFields.push(`creator_resolution_at = CURRENT_TIMESTAMP`);
+      if (winnerId) {
+        updateFields.push(`creator_resolution_winner = $${paramIndex}`);
+        params.push(winnerId);
+        paramIndex++;
+      } else {
+        updateFields.push(`creator_resolution_winner = NULL`);
+      }
+      if (comment) {
+        updateFields.push(`creator_resolution_comment = $${paramIndex}`);
+        params.push(comment);
+        paramIndex++;
+      }
+    } else if (userId === bet.opponent_id) {
+      updateFields.push(`opponent_resolution_at = CURRENT_TIMESTAMP`);
+      if (winnerId) {
+        updateFields.push(`opponent_resolution_winner = $${paramIndex}`);
+        params.push(winnerId);
+        paramIndex++;
+      } else {
+        updateFields.push(`opponent_resolution_winner = NULL`);
+      }
+      if (comment) {
+        updateFields.push(`opponent_resolution_comment = $${paramIndex}`);
+        params.push(comment);
+        paramIndex++;
+      }
+    }
+
+    await pool.query(
+      `UPDATE bets SET ${updateFields.join(', ')} WHERE id = $1`,
+      params
+    );
+
+    // Check if both have submitted resolution
+    const updated = await this.findById(id);
+    if (updated.creator_resolution_at && updated.opponent_resolution_at) {
+      const creatorWinner = updated.creator_resolution_winner;
+      const opponentWinner = updated.opponent_resolution_winner;
+
+      if (creatorWinner === opponentWinner) {
+        // They agree - mark as completed
+        await pool.query(
+          'UPDATE bets SET completed_at = CURRENT_TIMESTAMP, winner_id = $2, disputed_at = NULL WHERE id = $1',
+          [id, creatorWinner]
+        );
+      }
+      // If they still disagree, leave in disputed (disputed_at remains set)
+    }
+
+    return this.findById(id);
   },
 
   async delete(id) {

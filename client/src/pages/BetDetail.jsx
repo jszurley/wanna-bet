@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getBet, agreeToBet, declineBet, completeBet } from '../services/api';
+import { getBet, agreeToBet, declineBet, completeBet, resolveDispute } from '../services/api';
 import './BetDetail.css';
 
 export default function BetDetail() {
@@ -13,7 +13,10 @@ export default function BetDetail() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [showResolveModal, setShowResolveModal] = useState(false);
   const [selectedWinner, setSelectedWinner] = useState('');
+  const [resolveWinner, setResolveWinner] = useState('');
+  const [resolveComment, setResolveComment] = useState('');
   const [opponentSide, setOpponentSide] = useState('');
 
   useEffect(() => {
@@ -67,6 +70,21 @@ export default function BetDetail() {
       await loadBet();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to mark complete');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleResolve = async () => {
+    setActionLoading(true);
+    try {
+      await resolveDispute(id, resolveWinner || null, resolveComment);
+      setShowResolveModal(false);
+      setResolveWinner('');
+      setResolveComment('');
+      await loadBet();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to submit resolution');
     } finally {
       setActionLoading(false);
     }
@@ -176,6 +194,8 @@ export default function BetDetail() {
           <div className="bet-section disputed-section">
             <h3>Disputed</h3>
             <p className="disputed-text">Participants disagreed on the winner</p>
+
+            <h4 className="history-title">Original Selections</h4>
             <div className="completion-history">
               <div className="history-item">
                 <span className="history-name">{bet.creator_name}</span>
@@ -195,6 +215,47 @@ export default function BetDetail() {
                   <span className="history-time">{formatDateTime(bet.opponent_completed_at)}</span>
                 )}
               </div>
+            </div>
+
+            {(bet.creator_resolution_at || bet.opponent_resolution_at) && (
+              <>
+                <h4 className="history-title">Resolution Attempts</h4>
+                <div className="completion-history">
+                  {bet.creator_resolution_at && (
+                    <div className="history-item">
+                      <span className="history-name">{bet.creator_name}</span>
+                      <span className="history-selection">
+                        selected: {bet.creator_resolution_winner_name || 'No winner / Draw'}
+                      </span>
+                      <span className="history-time">{formatDateTime(bet.creator_resolution_at)}</span>
+                      {bet.creator_resolution_comment && (
+                        <span className="history-comment">"{bet.creator_resolution_comment}"</span>
+                      )}
+                    </div>
+                  )}
+                  {bet.opponent_resolution_at && (
+                    <div className="history-item">
+                      <span className="history-name">{bet.opponent_name}</span>
+                      <span className="history-selection">
+                        selected: {bet.opponent_resolution_winner_name || 'No winner / Draw'}
+                      </span>
+                      <span className="history-time">{formatDateTime(bet.opponent_resolution_at)}</span>
+                      {bet.opponent_resolution_comment && (
+                        <span className="history-comment">"{bet.opponent_resolution_comment}"</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            <div className="resolve-actions">
+              <button
+                className="btn btn-primary"
+                onClick={() => setShowResolveModal(true)}
+              >
+                Resolve Dispute
+              </button>
             </div>
           </div>
         )}
@@ -319,6 +380,50 @@ export default function BetDetail() {
                 disabled={actionLoading}
               >
                 {actionLoading ? 'Processing...' : 'Confirm Complete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showResolveModal && (
+        <div className="modal-overlay" onClick={() => setShowResolveModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Resolve Dispute</h2>
+            <p>Submit your resolution. If both parties agree, the bet will be marked complete.</p>
+
+            <div className="form-group">
+              <label>Who won?</label>
+              <select
+                value={resolveWinner}
+                onChange={(e) => setResolveWinner(e.target.value)}
+              >
+                <option value="">No winner / Draw</option>
+                <option value={bet.creator_id}>{bet.creator_name}</option>
+                <option value={bet.opponent_id}>{bet.opponent_name}</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Comment (explain your reasoning)</label>
+              <textarea
+                value={resolveComment}
+                onChange={(e) => setResolveComment(e.target.value)}
+                placeholder="Explain why you believe this is the correct winner..."
+                rows={3}
+              />
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn btn-outline" onClick={() => setShowResolveModal(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleResolve}
+                disabled={actionLoading}
+              >
+                {actionLoading ? 'Processing...' : 'Submit Resolution'}
               </button>
             </div>
           </div>

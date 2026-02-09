@@ -58,5 +58,6 @@ export const createBet = (data) => api.post('/bets', data);
 export const agreeToBet = (id, opponentSide) => api.post(`/bets/${id}/agree`, { opponentSide });
 export const declineBet = (id) => api.post(`/bets/${id}/decline`);
 export const completeBet = (id, winnerId) => api.post(`/bets/${id}/complete`, { winnerId });
+export const resolveDispute = (id, winnerId, comment) => api.post(`/bets/${id}/resolve`, { winnerId, comment });
 
 export default api;
