@@ -209,11 +209,12 @@ router.post('/:id/complete', auth, async (req, res) => {
     }
 
     // Validate winner if provided
-    if (winnerId && winnerId !== bet.creator_id && winnerId !== bet.opponent_id) {
+    const parsedWinnerId = winnerId ? parseInt(winnerId, 10) : null;
+    if (parsedWinnerId && parsedWinnerId !== bet.creator_id && parsedWinnerId !== bet.opponent_id) {
       return res.status(400).json({ error: 'Winner must be one of the bet participants' });
     }
 
-    const updated = await Bet.markComplete(bet.id, req.user.id, winnerId);
+    const updated = await Bet.markComplete(bet.id, req.user.id, parsedWinnerId);
     res.json(updated);
   } catch (error) {
     console.error('Complete bet error:', error);
