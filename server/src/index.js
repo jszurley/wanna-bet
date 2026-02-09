@@ -81,6 +81,23 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', app: 'Wanna Bet?' });
 });
 
+// Debug endpoint to check paths
+const fs = require('fs');
+app.get('/api/debug', (req, res) => {
+  const info = {
+    __dirname,
+    clientBuildPath,
+    cwd: process.cwd(),
+    buildExists: fs.existsSync(clientBuildPath),
+    buildContents: fs.existsSync(clientBuildPath) ? fs.readdirSync(clientBuildPath) : [],
+    assetsExists: fs.existsSync(path.join(clientBuildPath, 'assets')),
+    assetsContents: fs.existsSync(path.join(clientBuildPath, 'assets'))
+      ? fs.readdirSync(path.join(clientBuildPath, 'assets'))
+      : []
+  };
+  res.json(info);
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/connections', connectionsRoutes);
