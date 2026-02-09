@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
 
 const authRoutes = require('./routes/auth');
 const connectionsRoutes = require('./routes/connections');
@@ -15,8 +16,15 @@ const app = express();
 // Trust proxy for Railway
 app.set('trust proxy', 1);
 
-// Security headers - disable for static files
-app.use(helmet({
+// Serve static files FIRST, before any other middleware
+const clientBuildPath = path.join(__dirname, '../../client/dist');
+console.log('Static files path:', clientBuildPath);
+console.log('Static files exist:', fs.existsSync(clientBuildPath));
+
+app.use(express.static(clientBuildPath));
+
+// Security headers for API routes only
+app.use('/api', helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: { policy: 'cross-origin' }
@@ -59,30 +67,12 @@ app.use('/api/auth/register', authLimiter);
 
 app.use(express.json({ limit: '10kb' }));
 
-// Serve static files in production with explicit MIME types
-const clientBuildPath = path.join(__dirname, '../../client/dist');
-app.use(express.static(clientBuildPath, {
-  maxAge: '1d',
-  setHeaders: (res, filePath) => {
-    // Ensure correct MIME types
-    if (filePath.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
-    } else if (filePath.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css; charset=UTF-8');
-    } else if (filePath.endsWith('.html')) {
-      res.setHeader('Content-Type', 'text/html; charset=UTF-8');
-      res.setHeader('Cache-Control', 'no-cache');
-    }
-  }
-}));
-
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', app: 'Wanna Bet?' });
 });
 
 // Debug endpoint to check paths
-const fs = require('fs');
 app.get('/api/debug', (req, res) => {
   const info = {
     __dirname,
