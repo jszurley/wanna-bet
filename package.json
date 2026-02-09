@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Wanna Bet? - Friendly betting app",
   "scripts": {
-    "postinstall": "cd client && npm install && npm run build && cd ../server && npm install",
-    "start": "cd server && npm start"
+    "postinstall": "npm install --prefix client && npm run build --prefix client && npm install --prefix server",
+    "start": "npm start --prefix server"
   },
   "engines": {
     "node": ">=18.0.0"
