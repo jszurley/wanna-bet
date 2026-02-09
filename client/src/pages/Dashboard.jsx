@@ -8,11 +8,35 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('upcoming');
   const [bets, setBets] = useState([]);
+  const [counts, setCounts] = useState({ upcoming: 0, pending: 0, uncompleted: 0, completed: 0 });
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadCounts();
+  }, []);
 
   useEffect(() => {
     loadBets();
   }, [activeTab]);
+
+  const loadCounts = async () => {
+    try {
+      const [upcoming, pending, uncompleted, completed] = await Promise.all([
+        getUpcomingBets(),
+        getPendingBets(),
+        getUncompletedBets(),
+        getCompletedBets()
+      ]);
+      setCounts({
+        upcoming: upcoming.data.length,
+        pending: pending.data.length,
+        uncompleted: uncompleted.data.length,
+        completed: completed.data.length
+      });
+    } catch (error) {
+      console.error('Failed to load counts:', error);
+    }
+  };
 
   const loadBets = async () => {
     setLoading(true);
@@ -32,6 +56,7 @@ export default function Dashboard() {
           response = await getUpcomingBets();
       }
       setBets(response.data);
+      setCounts(prev => ({ ...prev, [activeTab]: response.data.length }));
     } catch (error) {
       console.error('Failed to load bets:', error);
     } finally {
@@ -65,7 +90,7 @@ export default function Dashboard() {
             className={`tab ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >
-            {tab.label}
+            {tab.label} ({counts[tab.id]})
           </button>
         ))}
       </div>
