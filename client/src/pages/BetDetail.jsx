@@ -183,6 +183,88 @@ export default function BetDetail() {
           </div>
         </div>
 
+        <div className="bet-section history-section">
+          <h3>History</h3>
+          <div className="history-timeline">
+            <div className="history-entry">
+              <span className="history-action">Bet created by {bet.creator_name}</span>
+              <span className="history-time">{formatDateTime(bet.created_at)}</span>
+            </div>
+
+            {bet.locked_at && (
+              <div className="history-entry">
+                <span className="history-action">{bet.opponent_name} agreed to the bet</span>
+                <span className="history-time">{formatDateTime(bet.locked_at)}</span>
+              </div>
+            )}
+
+            {bet.creator_completed_at && (
+              <div className="history-entry">
+                <span className="history-action">
+                  {bet.creator_name} marked complete - selected: {bet.creator_selected_winner_name || 'No winner / Draw'}
+                </span>
+                <span className="history-time">{formatDateTime(bet.creator_completed_at)}</span>
+              </div>
+            )}
+
+            {bet.opponent_completed_at && (
+              <div className="history-entry">
+                <span className="history-action">
+                  {bet.opponent_name} marked complete - selected: {bet.opponent_selected_winner_name || 'No winner / Draw'}
+                </span>
+                <span className="history-time">{formatDateTime(bet.opponent_completed_at)}</span>
+              </div>
+            )}
+
+            {bet.disputed_at && (
+              <div className="history-entry disputed">
+                <span className="history-action">Bet marked as disputed (disagreement on winner)</span>
+                <span className="history-time">{formatDateTime(bet.disputed_at)}</span>
+              </div>
+            )}
+
+            {bet.creator_resolution_at && (
+              <div className="history-entry">
+                <span className="history-action">
+                  {bet.creator_name} submitted resolution - selected: {bet.creator_resolution_winner_name || 'No winner / Draw'}
+                </span>
+                <span className="history-time">{formatDateTime(bet.creator_resolution_at)}</span>
+                {bet.creator_resolution_comment && (
+                  <span className="history-comment">"{bet.creator_resolution_comment}"</span>
+                )}
+              </div>
+            )}
+
+            {bet.opponent_resolution_at && (
+              <div className="history-entry">
+                <span className="history-action">
+                  {bet.opponent_name} submitted resolution - selected: {bet.opponent_resolution_winner_name || 'No winner / Draw'}
+                </span>
+                <span className="history-time">{formatDateTime(bet.opponent_resolution_at)}</span>
+                {bet.opponent_resolution_comment && (
+                  <span className="history-comment">"{bet.opponent_resolution_comment}"</span>
+                )}
+              </div>
+            )}
+
+            {bet.completed_at && (
+              <div className="history-entry completed">
+                <span className="history-action">
+                  Bet completed{bet.winner_name ? ` - Winner: ${bet.winner_name}` : ' - No winner / Draw'}
+                </span>
+                <span className="history-time">{formatDateTime(bet.completed_at)}</span>
+              </div>
+            )}
+
+            {bet.rejected_at && (
+              <div className="history-entry rejected">
+                <span className="history-action">Bet rejected</span>
+                <span className="history-time">{formatDateTime(bet.rejected_at)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
         {bet.winner_name && (
           <div className="bet-section winner-section">
             <h3>Winner</h3>
