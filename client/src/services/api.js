@@ -65,4 +65,10 @@ export const getTrashTalk = (betId) => api.get(`/bets/${betId}/trash-talk`);
 export const addTrashTalk = (betId, message) => api.post(`/bets/${betId}/trash-talk`, { message });
 export const deleteTrashTalk = (betId, trashTalkId) => api.delete(`/bets/${betId}/trash-talk/${trashTalkId}`);
 
+// Group Bets
+export const getBetDetails = (id) => api.get(`/bets/${id}/details`);
+export const joinGroupBet = (id, selectedOptionId) => api.post(`/bets/${id}/join`, { selectedOptionId });
+export const declineGroupBetInvite = (id) => api.post(`/bets/${id}/decline-invite`);
+export const setWinningOption = (id, winningOptionId) => api.post(`/bets/${id}/set-winner`, { winningOptionId });
+
 export default api;

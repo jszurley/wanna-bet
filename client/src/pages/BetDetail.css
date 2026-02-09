@@ -445,6 +445,207 @@
   margin-top: 1.5rem;
 }
 
+/* Group Bet Styles */
+.badge-info {
+  background: #3b82f6;
+  color: white;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+
+.bet-detail-header h1 {
+  margin-top: 0.25rem;
+}
+
+.creator-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* Options Section */
+.options-section {
+  background: var(--background);
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.options-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.option-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.option-card.winner {
+  background: #d1fae5;
+  border-color: var(--secondary);
+}
+
+.option-text {
+  font-weight: 500;
+}
+
+.option-count {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.winner-badge {
+  background: var(--secondary);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+/* Participants Section */
+.participants-section {
+  background: var(--background);
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.participants-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.participant-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.participant-card.joined {
+  border-left: 3px solid var(--secondary);
+}
+
+.participant-card.invited {
+  border-left: 3px solid var(--warning);
+  opacity: 0.8;
+}
+
+.participant-card.declined {
+  border-left: 3px solid #ef4444;
+  opacity: 0.6;
+}
+
+.participant-card .participant-name {
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.creator-tag {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-left: 0.5rem;
+}
+
+.participant-pick {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.participant-status {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.participant-status.invited {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.participant-status.declined {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Winners Section for Group Bets */
+.winning-option {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.winners-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.winners-list .winner-name {
+  background: var(--secondary);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+/* Join Section */
+.join-section {
+  width: 100%;
+}
+
+.join-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.join-options .radio-option,
+.winner-options .radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--background);
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+
+.join-options .radio-option:hover,
+.winner-options .radio-option:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.join-options .radio-option input,
+.winner-options .radio-option input {
+  width: auto;
+  margin: 0;
+}
+
+.winner-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
 @media (max-width: 480px) {
   .bet-participants {
     flex-direction: column;
@@ -466,5 +667,16 @@
 
   .bet-actions .btn {
     width: 100%;
+  }
+
+  .option-card {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .participant-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
   }
 }

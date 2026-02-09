@@ -45,14 +45,15 @@ const Bet = {
        JOIN users uc ON b.creator_id = uc.id
        JOIN users uo ON b.opponent_id = uo.id
        LEFT JOIN users uw ON b.winner_id = uw.id
-       WHERE b.creator_id = $1 OR b.opponent_id = $1
+       WHERE (b.creator_id = $1 OR b.opponent_id = $1)
+         AND (b.bet_type IS NULL OR b.bet_type = '1v1')
        ORDER BY b.created_at DESC`,
       [userId]
     );
     return result.rows;
   },
 
-  // Upcoming bets (agreed, not completed, end_date >= today)
+  // Upcoming bets (agreed, not completed, end_date >= today) - 1v1 only
   async findUpcoming(userId) {
     const result = await pool.query(
       `SELECT b.*,
@@ -63,6 +64,7 @@ const Bet = {
        JOIN users uo ON b.opponent_id = uo.id
        LEFT JOIN users uw ON b.winner_id = uw.id
        WHERE (b.creator_id = $1 OR b.opponent_id = $1)
+         AND (b.bet_type IS NULL OR b.bet_type = '1v1')
          AND b.opponent_agreed = TRUE
          AND b.completed_at IS NULL
          AND b.end_date >= CURRENT_DATE
@@ -72,7 +74,7 @@ const Bet = {
     return result.rows;
   },
 
-  // Pending bets (not yet agreed by opponent, not rejected)
+  // Pending bets (not yet agreed by opponent, not rejected) - 1v1 only
   async findPending(userId) {
     const result = await pool.query(
       `SELECT b.*,
@@ -81,6 +83,7 @@ const Bet = {
        JOIN users uc ON b.creator_id = uc.id
        JOIN users uo ON b.opponent_id = uo.id
        WHERE (b.creator_id = $1 OR b.opponent_id = $1)
+         AND (b.bet_type IS NULL OR b.bet_type = '1v1')
          AND b.opponent_agreed = FALSE
          AND b.rejected_at IS NULL
        ORDER BY b.created_at DESC`,
@@ -89,7 +92,7 @@ const Bet = {
     return result.rows;
   },
 
-  // Past uncompleted bets (agreed, end_date < today, not completed)
+  // Past uncompleted bets (agreed, end_date < today, not completed) - 1v1 only
   async findPastUncompleted(userId) {
     const result = await pool.query(
       `SELECT b.*,
@@ -100,6 +103,7 @@ const Bet = {
        JOIN users uo ON b.opponent_id = uo.id
        LEFT JOIN users uw ON b.winner_id = uw.id
        WHERE (b.creator_id = $1 OR b.opponent_id = $1)
+         AND (b.bet_type IS NULL OR b.bet_type = '1v1')
          AND b.opponent_agreed = TRUE
          AND b.completed_at IS NULL
          AND b.end_date < CURRENT_DATE
@@ -109,7 +113,7 @@ const Bet = {
     return result.rows;
   },
 
-  // Completed bets
+  // Completed bets - 1v1 only
   async findCompleted(userId) {
     const result = await pool.query(
       `SELECT b.*,
@@ -120,6 +124,7 @@ const Bet = {
        JOIN users uo ON b.opponent_id = uo.id
        LEFT JOIN users uw ON b.winner_id = uw.id
        WHERE (b.creator_id = $1 OR b.opponent_id = $1)
+         AND (b.bet_type IS NULL OR b.bet_type = '1v1')
          AND b.completed_at IS NOT NULL
        ORDER BY b.completed_at DESC`,
       [userId]
@@ -151,7 +156,7 @@ const Bet = {
     return result.rows[0];
   },
 
-  // Rejected bets
+  // Rejected bets - 1v1 only
   async findRejected(userId) {
     const result = await pool.query(
       `SELECT b.*,
@@ -162,6 +167,7 @@ const Bet = {
        JOIN users uo ON b.opponent_id = uo.id
        LEFT JOIN users ur ON b.rejected_by = ur.id
        WHERE (b.creator_id = $1 OR b.opponent_id = $1)
+         AND (b.bet_type IS NULL OR b.bet_type = '1v1')
          AND b.rejected_at IS NOT NULL
        ORDER BY b.rejected_at DESC`,
       [userId]
@@ -226,7 +232,7 @@ const Bet = {
     return this.findById(id);
   },
 
-  // Disputed bets
+  // Disputed bets - 1v1 only
   async findDisputed(userId) {
     const result = await pool.query(
       `SELECT b.*,
@@ -239,6 +245,7 @@ const Bet = {
        LEFT JOIN users ucw ON b.creator_selected_winner = ucw.id
        LEFT JOIN users uow ON b.opponent_selected_winner = uow.id
        WHERE (b.creator_id = $1 OR b.opponent_id = $1)
+         AND (b.bet_type IS NULL OR b.bet_type = '1v1')
          AND b.disputed_at IS NOT NULL
        ORDER BY b.disputed_at DESC`,
       [userId]

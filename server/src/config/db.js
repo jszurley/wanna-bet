@@ -153,8 +153,47 @@ const initializeDatabase = async () => {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'bets' AND column_name = 'opponent_resolution_at') THEN
           ALTER TABLE bets ADD COLUMN opponent_resolution_at TIMESTAMP;
         END IF;
+        -- Group bet columns
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'bets' AND column_name = 'bet_type') THEN
+          ALTER TABLE bets ADD COLUMN bet_type VARCHAR(10) DEFAULT '1v1';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'bets' AND column_name = 'winning_option_id') THEN
+          ALTER TABLE bets ADD COLUMN winning_option_id INTEGER;
+        END IF;
       END $$;
     `);
+
+    // Create bet_options table for group bets
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bet_options (
+        id SERIAL PRIMARY KEY,
+        bet_id INTEGER REFERENCES bets(id) ON DELETE CASCADE,
+        option_text VARCHAR(255) NOT NULL,
+        display_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_bet_options_bet ON bet_options(bet_id)`);
+
+    // Create bet_participants table for group bets
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bet_participants (
+        id SERIAL PRIMARY KEY,
+        bet_id INTEGER REFERENCES bets(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        selected_option_id INTEGER REFERENCES bet_options(id),
+        status VARCHAR(20) DEFAULT 'invited',
+        is_creator BOOLEAN DEFAULT FALSE,
+        invited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        responded_at TIMESTAMP,
+        marked_complete BOOLEAN DEFAULT FALSE,
+        completed_at TIMESTAMP,
+        UNIQUE(bet_id, user_id)
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_bet_participants_bet ON bet_participants(bet_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_bet_participants_user ON bet_participants(user_id)`);
+
     console.log('Database migrations complete');
   } catch (error) {
     console.error('Database initialization error:', error.message);

@@ -4,12 +4,17 @@ import './BetCard.css';
 export default function BetCard({ bet, onClick }) {
   const { user } = useAuth();
 
+  const isGroupBet = bet.bet_type === 'group';
   const isCreator = bet.creator_id === user?.id;
   const opponent = isCreator ? bet.opponent_name : bet.creator_name;
-  const isLocked = bet.opponent_agreed;
+  const isLocked = isGroupBet ? !!bet.locked_at : bet.opponent_agreed;
   const isCompleted = bet.completed_at;
-  const isPending = !bet.opponent_agreed;
-  const needsMyAction = !isCreator && !bet.opponent_agreed;
+  const isPending = isGroupBet ? !bet.locked_at : !bet.opponent_agreed;
+
+  // For group bets, check if current user needs to take action
+  const needsMyAction = isGroupBet
+    ? bet.my_status === 'invited'
+    : (!isCreator && !bet.opponent_agreed);
 
   const formatDate = (dateStr) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -29,14 +34,26 @@ export default function BetCard({ bet, onClick }) {
 
   const status = getStatus();
 
+  // Determine if user won (for group bets)
+  const isWinner = isGroupBet && bet.winning_option_id && bet.selected_option_id === bet.winning_option_id;
+
   return (
     <div className="bet-card" onClick={onClick}>
       <div className="bet-card-header">
-        <h3 className="bet-title">{bet.title}</h3>
+        <div className="bet-title-area">
+          {isGroupBet && <span className="group-badge">Group</span>}
+          <h3 className="bet-title">{bet.title}</h3>
+        </div>
         <span className={`badge ${status.class}`}>{status.text}</span>
       </div>
 
-      <p className="bet-opponent">vs. {opponent}</p>
+      {isGroupBet ? (
+        <p className="bet-participants-count">
+          {bet.participant_count || 0} participants
+        </p>
+      ) : (
+        <p className="bet-opponent">vs. {opponent}</p>
+      )}
 
       <div className="bet-dates">
         <span>{formatDate(bet.start_date)}</span>
@@ -46,7 +63,13 @@ export default function BetCard({ bet, onClick }) {
 
       <p className="bet-prize">Prize: {bet.prize_description}</p>
 
-      {bet.winner_name && (
+      {isGroupBet && isCompleted && (
+        <p className={`bet-result ${isWinner ? 'winner' : 'loser'}`}>
+          {isWinner ? 'You won!' : `Winner: ${bet.winning_option_text || 'Set'}`}
+        </p>
+      )}
+
+      {!isGroupBet && bet.winner_name && (
         <p className="bet-winner">Winner: {bet.winner_name}</p>
       )}
     </div>

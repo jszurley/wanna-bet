@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getBet, agreeToBet, declineBet, completeBet, resolveDispute, getTrashTalk, addTrashTalk } from '../services/api';
+import {
+  getBet, agreeToBet, declineBet, completeBet, resolveDispute,
+  getTrashTalk, addTrashTalk, getBetDetails, joinGroupBet,
+  declineGroupBetInvite, setWinningOption
+} from '../services/api';
 import './BetDetail.css';
 
 export default function BetDetail() {
@@ -22,6 +26,11 @@ export default function BetDetail() {
   const [showTrashTalkModal, setShowTrashTalkModal] = useState(false);
   const [trashTalkMessage, setTrashTalkMessage] = useState('');
 
+  // Group bet state
+  const [selectedOptionId, setSelectedOptionId] = useState('');
+  const [showSetWinnerModal, setShowSetWinnerModal] = useState(false);
+  const [winningOptionId, setWinningOptionId] = useState('');
+
   useEffect(() => {
     loadBet();
     loadTrashTalk();
@@ -29,10 +38,25 @@ export default function BetDetail() {
 
   const loadBet = async () => {
     try {
+      // First try to load as regular bet
       const response = await getBet(id);
-      setBet(response.data);
+      const betData = response.data;
+
+      // If it's a group bet, load full details
+      if (betData.bet_type === 'group') {
+        const detailsResponse = await getBetDetails(id);
+        setBet(detailsResponse.data);
+      } else {
+        setBet(betData);
+      }
     } catch (err) {
-      setError('Failed to load bet');
+      // If regular bet fails, try group bet details
+      try {
+        const detailsResponse = await getBetDetails(id);
+        setBet(detailsResponse.data);
+      } catch (err2) {
+        setError('Failed to load bet');
+      }
     } finally {
       setLoading(false);
     }
@@ -118,6 +142,52 @@ export default function BetDetail() {
     }
   };
 
+  // Group bet handlers
+  const handleJoinGroupBet = async () => {
+    if (!selectedOptionId) {
+      setError('Please select an option to join');
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await joinGroupBet(id, selectedOptionId);
+      await loadBet();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to join bet');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeclineGroupBet = async () => {
+    if (!window.confirm('Are you sure you want to decline this invitation?')) return;
+    setActionLoading(true);
+    try {
+      await declineGroupBetInvite(id);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to decline');
+      setActionLoading(false);
+    }
+  };
+
+  const handleSetWinner = async () => {
+    if (!winningOptionId) {
+      setError('Please select the winning option');
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await setWinningOption(id, winningOptionId);
+      setShowSetWinnerModal(false);
+      await loadBet();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to set winner');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading...</div>;
   }
@@ -131,10 +201,25 @@ export default function BetDetail() {
     );
   }
 
+  // Check if this is a group bet
+  const isGroupBet = bet.bet_type === 'group';
+
+  // Group bet specific variables
+  const myParticipant = isGroupBet ? bet.participants?.find(p => p.user_id === user?.id) : null;
+  const isGroupCreator = isGroupBet && bet.creator_id === user?.id;
+  const myGroupStatus = myParticipant?.status;
+  const isInvited = myGroupStatus === 'invited';
+  const hasJoined = myGroupStatus === 'joined';
+  const joinedParticipants = isGroupBet ? bet.participants?.filter(p => p.status === 'joined') : [];
+  const winners = isGroupBet && bet.winning_option_id
+    ? bet.participants?.filter(p => p.status === 'joined' && p.selected_option_id === bet.winning_option_id)
+    : [];
+
+  // 1v1 bet variables
   const isCreator = bet.creator_id === user?.id;
   const isOpponent = bet.opponent_id === user?.id;
-  const isPending = !bet.opponent_agreed;
-  const isLocked = bet.opponent_agreed;
+  const isPending = !isGroupBet && !bet.opponent_agreed;
+  const isLocked = isGroupBet ? !!bet.locked_at : bet.opponent_agreed;
   const isCompleted = bet.completed_at;
   const myCompletionStatus = isCreator ? bet.creator_marked_complete : bet.opponent_marked_complete;
   const theirCompletionStatus = isCreator ? bet.opponent_marked_complete : bet.creator_marked_complete;
@@ -159,6 +244,291 @@ export default function BetDetail() {
     });
   };
 
+  // Group Bet Rendering
+  if (isGroupBet) {
+    return (
+      <div className="bet-detail-page">
+        <Link to="/" className="back-link">&larr; Back to Bets</Link>
+
+        {error && <div className="alert alert-error">{error}</div>}
+
+        <div className="card bet-detail-card">
+          <div className="bet-detail-header">
+            <div>
+              <span className="badge badge-info">Group Bet</span>
+              <h1>{bet.title}</h1>
+            </div>
+            {isCompleted && <span className="badge badge-success">Completed</span>}
+            {!isLocked && !isCompleted && <span className="badge badge-warning">Awaiting Participants</span>}
+            {isLocked && !isCompleted && <span className="badge badge-primary">Active</span>}
+          </div>
+
+          <div className="bet-section">
+            <h3>Created by</h3>
+            <p className="creator-name">{bet.creator_name}</p>
+          </div>
+
+          <div className="bet-section">
+            <h3>Description</h3>
+            <p>{bet.description}</p>
+          </div>
+
+          <div className="bet-section">
+            <h3>Stakes / Prize</h3>
+            <p className="prize-text">{bet.prize_description}</p>
+          </div>
+
+          <div className="bet-section">
+            <h3>Timeline</h3>
+            <div className="dates">
+              <div>
+                <span className="date-label">Start</span>
+                <span>{formatDate(bet.start_date)}</span>
+              </div>
+              <div>
+                <span className="date-label">End</span>
+                <span>{formatDate(bet.end_date)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bet-section options-section">
+            <h3>Prediction Options</h3>
+            <div className="options-display">
+              {bet.options?.map((option) => (
+                <div
+                  key={option.id}
+                  className={`option-card ${bet.winning_option_id === option.id ? 'winner' : ''}`}
+                >
+                  <span className="option-text">{option.option_text}</span>
+                  <span className="option-count">{option.participant_count} picked</span>
+                  {bet.winning_option_id === option.id && (
+                    <span className="winner-badge">Winner</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bet-section participants-section">
+            <h3>Participants ({joinedParticipants.length} joined)</h3>
+            <div className="participants-display">
+              {bet.participants?.map((p) => (
+                <div key={p.id} className={`participant-card ${p.status}`}>
+                  <span className="participant-name">
+                    {p.user_name}
+                    {p.is_creator && <span className="creator-tag">(Creator)</span>}
+                  </span>
+                  {p.status === 'joined' && p.selected_option_text && (
+                    <span className="participant-pick">Picked: {p.selected_option_text}</span>
+                  )}
+                  {p.status === 'invited' && (
+                    <span className="participant-status invited">Invited</span>
+                  )}
+                  {p.status === 'declined' && (
+                    <span className="participant-status declined">Declined</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {isCompleted && winners.length > 0 && (
+            <div className="bet-section winner-section">
+              <h3>Winners</h3>
+              <p className="winning-option">Winning option: {bet.winning_option_text}</p>
+              <div className="winners-list">
+                {winners.map((w) => (
+                  <span key={w.id} className="winner-name">{w.user_name}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {isCompleted && winners.length === 0 && (
+            <div className="bet-section winner-section">
+              <h3>Result</h3>
+              <p>No participants picked the winning option: {bet.winning_option_text}</p>
+            </div>
+          )}
+
+          {/* Trash Talk Section */}
+          <div className="bet-section trash-talk-section">
+            <div className="trash-talk-header">
+              <h3>Trash Talk</h3>
+              {isLocked && !isCompleted && hasJoined && (
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setShowTrashTalkModal(true)}
+                >
+                  + Add Trash Talk
+                </button>
+              )}
+            </div>
+            {trashTalk.length === 0 ? (
+              <p className="trash-talk-empty">No trash talk yet. {isLocked && !isCompleted && hasJoined && "Be the first to talk some smack!"}</p>
+            ) : (
+              <div className="trash-talk-messages">
+                {trashTalk.map((tt) => (
+                  <div key={tt.id} className={`trash-talk-message ${tt.user_id === user?.id ? 'own' : ''}`}>
+                    <div className="trash-talk-bubble">
+                      <span className="trash-talk-text">{tt.message}</span>
+                    </div>
+                    <div className="trash-talk-meta">
+                      <span className="trash-talk-author">{tt.user_name}</span>
+                      <span className="trash-talk-time">{formatDateTime(tt.created_at)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="bet-actions">
+            {/* Invited user can join or decline */}
+            {isInvited && !isCompleted && (
+              <div className="join-section">
+                <div className="form-group">
+                  <label>Select Your Prediction</label>
+                  <div className="join-options">
+                    {bet.options?.map((option) => (
+                      <label key={option.id} className="radio-option">
+                        <input
+                          type="radio"
+                          name="joinOption"
+                          value={option.id}
+                          checked={selectedOptionId === String(option.id)}
+                          onChange={(e) => setSelectedOptionId(e.target.value)}
+                        />
+                        <span>{option.option_text}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="action-buttons">
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleJoinGroupBet}
+                    disabled={actionLoading || !selectedOptionId}
+                  >
+                    {actionLoading ? 'Joining...' : 'Join Bet'}
+                  </button>
+                  <button
+                    className="btn btn-outline"
+                    onClick={handleDeclineGroupBet}
+                    disabled={actionLoading}
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Creator can set winner after end date */}
+            {isGroupCreator && isLocked && !isCompleted && new Date(bet.end_date) < new Date() && (
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowSetWinnerModal(true)}
+              >
+                Set Winning Option
+              </button>
+            )}
+
+            {/* Show waiting status */}
+            {hasJoined && !isLocked && !isCompleted && (
+              <p className="waiting-text">Waiting for more participants to join (need at least 2)</p>
+            )}
+
+            {hasJoined && isLocked && !isCompleted && new Date(bet.end_date) >= new Date() && (
+              <p className="waiting-text">Bet is active. Winner will be set after the end date.</p>
+            )}
+
+            {hasJoined && isLocked && !isCompleted && !isGroupCreator && new Date(bet.end_date) < new Date() && (
+              <p className="waiting-text">Waiting for {bet.creator_name} to set the winning option</p>
+            )}
+          </div>
+        </div>
+
+        {/* Set Winner Modal */}
+        {showSetWinnerModal && (
+          <div className="modal-overlay" onClick={() => setShowSetWinnerModal(false)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <h2>Set Winning Option</h2>
+              <p>Select which prediction was correct.</p>
+
+              <div className="form-group">
+                <label>Winning Option</label>
+                <div className="winner-options">
+                  {bet.options?.map((option) => (
+                    <label key={option.id} className="radio-option">
+                      <input
+                        type="radio"
+                        name="winnerOption"
+                        value={option.id}
+                        checked={winningOptionId === String(option.id)}
+                        onChange={(e) => setWinningOptionId(e.target.value)}
+                      />
+                      <span>{option.option_text} ({option.participant_count} picked)</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button className="btn btn-outline" onClick={() => setShowSetWinnerModal(false)}>
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSetWinner}
+                  disabled={actionLoading || !winningOptionId}
+                >
+                  {actionLoading ? 'Setting...' : 'Confirm Winner'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Trash Talk Modal */}
+        {showTrashTalkModal && (
+          <div className="modal-overlay" onClick={() => setShowTrashTalkModal(false)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <h2>Add Trash Talk</h2>
+              <p>Talk some smack! Keep it fun and friendly.</p>
+
+              <div className="form-group">
+                <label>Your Message</label>
+                <textarea
+                  value={trashTalkMessage}
+                  onChange={(e) => setTrashTalkMessage(e.target.value)}
+                  placeholder="Say something to your opponents..."
+                  rows={3}
+                  autoFocus
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button className="btn btn-outline" onClick={() => setShowTrashTalkModal(false)}>
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleAddTrashTalk}
+                  disabled={actionLoading || !trashTalkMessage.trim()}
+                >
+                  {actionLoading ? 'Sending...' : 'Send'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 1v1 Bet Rendering (existing code)
   return (
     <div className="bet-detail-page">
       <Link to="/" className="back-link">&larr; Back to Bets</Link>
