@@ -74,9 +74,34 @@ const initializeDatabase = async () => {
       await pool.query(`CREATE INDEX IF NOT EXISTS idx_bets_opponent ON bets(opponent_id)`);
       await pool.query(`CREATE INDEX IF NOT EXISTS idx_bets_dates ON bets(start_date, end_date)`);
 
+      // Create trash_talk table
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS trash_talk (
+          id SERIAL PRIMARY KEY,
+          bet_id INTEGER REFERENCES bets(id) ON DELETE CASCADE,
+          user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          message TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_trash_talk_bet ON trash_talk(bet_id)`);
+
       console.log('Database schema initialized successfully');
     } else {
       console.log('Database connected - schema already exists');
+
+      // Create trash_talk table if it doesn't exist (migration for existing databases)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS trash_talk (
+          id SERIAL PRIMARY KEY,
+          bet_id INTEGER REFERENCES bets(id) ON DELETE CASCADE,
+          user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          message TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_trash_talk_bet ON trash_talk(bet_id)`);
     }
 
     // Add new columns if they don't exist (migrations)

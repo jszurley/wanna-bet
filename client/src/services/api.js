@@ -60,4 +60,9 @@ export const declineBet = (id) => api.post(`/bets/${id}/decline`);
 export const completeBet = (id, winnerId) => api.post(`/bets/${id}/complete`, { winnerId });
 export const resolveDispute = (id, winnerId, comment) => api.post(`/bets/${id}/resolve`, { winnerId, comment });
 
+// Trash Talk
+export const getTrashTalk = (betId) => api.get(`/bets/${betId}/trash-talk`);
+export const addTrashTalk = (betId, message) => api.post(`/bets/${betId}/trash-talk`, { message });
+export const deleteTrashTalk = (betId, trashTalkId) => api.delete(`/bets/${betId}/trash-talk/${trashTalkId}`);
+
 export default api;

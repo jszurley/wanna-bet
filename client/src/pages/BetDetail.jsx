@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getBet, agreeToBet, declineBet, completeBet, resolveDispute } from '../services/api';
+import { getBet, agreeToBet, declineBet, completeBet, resolveDispute, getTrashTalk, addTrashTalk } from '../services/api';
 import './BetDetail.css';
 
 export default function BetDetail() {
@@ -18,9 +18,13 @@ export default function BetDetail() {
   const [resolveWinner, setResolveWinner] = useState('');
   const [resolveComment, setResolveComment] = useState('');
   const [opponentSide, setOpponentSide] = useState('');
+  const [trashTalk, setTrashTalk] = useState([]);
+  const [showTrashTalkModal, setShowTrashTalkModal] = useState(false);
+  const [trashTalkMessage, setTrashTalkMessage] = useState('');
 
   useEffect(() => {
     loadBet();
+    loadTrashTalk();
   }, [id]);
 
   const loadBet = async () => {
@@ -31,6 +35,30 @@ export default function BetDetail() {
       setError('Failed to load bet');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTrashTalk = async () => {
+    try {
+      const response = await getTrashTalk(id);
+      setTrashTalk(response.data);
+    } catch (err) {
+      console.error('Failed to load trash talk:', err);
+    }
+  };
+
+  const handleAddTrashTalk = async () => {
+    if (!trashTalkMessage.trim()) return;
+    setActionLoading(true);
+    try {
+      await addTrashTalk(id, trashTalkMessage);
+      setTrashTalkMessage('');
+      setShowTrashTalkModal(false);
+      await loadTrashTalk();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to add trash talk');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -157,6 +185,37 @@ export default function BetDetail() {
             <span className="participant-name">{bet.opponent_name}</span>
             {bet.opponent_side && <span className="participant-side">"{bet.opponent_side}"</span>}
           </div>
+        </div>
+
+        <div className="bet-section trash-talk-section">
+          <div className="trash-talk-header">
+            <h3>Trash Talk</h3>
+            {isLocked && !isCompleted && (
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={() => setShowTrashTalkModal(true)}
+              >
+                + Add Trash Talk
+              </button>
+            )}
+          </div>
+          {trashTalk.length === 0 ? (
+            <p className="trash-talk-empty">No trash talk yet. {isLocked && !isCompleted && "Be the first to talk some smack!"}</p>
+          ) : (
+            <div className="trash-talk-messages">
+              {trashTalk.map((tt) => (
+                <div key={tt.id} className={`trash-talk-message ${tt.user_id === user?.id ? 'own' : ''}`}>
+                  <div className="trash-talk-bubble">
+                    <span className="trash-talk-text">{tt.message}</span>
+                  </div>
+                  <div className="trash-talk-meta">
+                    <span className="trash-talk-author">{tt.user_name}</span>
+                    <span className="trash-talk-time">{formatDateTime(tt.created_at)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="bet-section">
@@ -506,6 +565,39 @@ export default function BetDetail() {
                 disabled={actionLoading}
               >
                 {actionLoading ? 'Processing...' : 'Submit Resolution'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTrashTalkModal && (
+        <div className="modal-overlay" onClick={() => setShowTrashTalkModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Add Trash Talk</h2>
+            <p>Talk some smack! Keep it fun and friendly.</p>
+
+            <div className="form-group">
+              <label>Your Message</label>
+              <textarea
+                value={trashTalkMessage}
+                onChange={(e) => setTrashTalkMessage(e.target.value)}
+                placeholder="Say something to your opponent..."
+                rows={3}
+                autoFocus
+              />
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn btn-outline" onClick={() => setShowTrashTalkModal(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleAddTrashTalk}
+                disabled={actionLoading || !trashTalkMessage.trim()}
+              >
+                {actionLoading ? 'Sending...' : 'Send'}
               </button>
             </div>
           </div>

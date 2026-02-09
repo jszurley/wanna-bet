@@ -287,6 +287,95 @@
   border-left: 2px solid var(--border);
 }
 
+/* Trash Talk Section */
+.trash-talk-section {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid #f59e0b;
+}
+
+.trash-talk-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.trash-talk-header h3 {
+  margin-bottom: 0;
+  color: #92400e;
+}
+
+.trash-talk-header .btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.trash-talk-empty {
+  font-style: italic;
+  color: #92400e;
+  opacity: 0.8;
+  margin: 0;
+}
+
+.trash-talk-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.trash-talk-message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.trash-talk-message.own {
+  align-items: flex-end;
+}
+
+.trash-talk-bubble {
+  background: white;
+  padding: 0.625rem 0.875rem;
+  border-radius: 12px;
+  border-bottom-left-radius: 4px;
+  max-width: 85%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.trash-talk-message.own .trash-talk-bubble {
+  background: var(--primary);
+  color: white;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 4px;
+}
+
+.trash-talk-text {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.trash-talk-meta {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #78350f;
+}
+
+.trash-talk-message.own .trash-talk-meta {
+  flex-direction: row-reverse;
+}
+
+.trash-talk-author {
+  font-weight: 500;
+}
+
+.trash-talk-time {
+  opacity: 0.7;
+}
+
 .bet-actions {
   margin-top: 1.5rem;
   padding-top: 1.5rem;

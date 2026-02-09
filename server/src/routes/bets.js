@@ -1,6 +1,7 @@
 const express = require('express');
 const Bet = require('../models/Bet');
 const Connection = require('../models/Connection');
+const TrashTalk = require('../models/TrashTalk');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -266,6 +267,70 @@ router.post('/:id/resolve', auth, async (req, res) => {
   } catch (error) {
     console.error('Resolve dispute error:', error);
     res.status(500).json({ error: 'Failed to resolve dispute' });
+  }
+});
+
+// Get trash talk for a bet
+router.get('/:id/trash-talk', auth, async (req, res) => {
+  try {
+    const bet = await Bet.findById(req.params.id);
+    if (!bet) {
+      return res.status(404).json({ error: 'Bet not found' });
+    }
+
+    if (bet.creator_id !== req.user.id && bet.opponent_id !== req.user.id) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const trashTalk = await TrashTalk.findByBet(bet.id);
+    res.json(trashTalk);
+  } catch (error) {
+    console.error('Get trash talk error:', error);
+    res.status(500).json({ error: 'Failed to get trash talk' });
+  }
+});
+
+// Add trash talk to a bet
+router.post('/:id/trash-talk', auth, async (req, res) => {
+  try {
+    const { message } = req.body;
+    const bet = await Bet.findById(req.params.id);
+
+    if (!bet) {
+      return res.status(404).json({ error: 'Bet not found' });
+    }
+
+    if (bet.creator_id !== req.user.id && bet.opponent_id !== req.user.id) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const trashTalk = await TrashTalk.create(bet.id, req.user.id, message.trim());
+
+    // Return with user name
+    const result = await TrashTalk.findByBet(bet.id);
+    const created = result.find(t => t.id === trashTalk.id);
+    res.status(201).json(created);
+  } catch (error) {
+    console.error('Add trash talk error:', error);
+    res.status(500).json({ error: 'Failed to add trash talk' });
+  }
+});
+
+// Delete trash talk
+router.delete('/:id/trash-talk/:trashTalkId', auth, async (req, res) => {
+  try {
+    const deleted = await TrashTalk.delete(req.params.trashTalkId, req.user.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Trash talk not found or not authorized' });
+    }
+    res.json({ message: 'Trash talk deleted' });
+  } catch (error) {
+    console.error('Delete trash talk error:', error);
+    res.status(500).json({ error: 'Failed to delete trash talk' });
   }
 });
 
