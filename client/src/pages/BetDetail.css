@@ -147,6 +147,62 @@
   color: var(--secondary-dark);
 }
 
+.check-header {
+  font-weight: 500;
+}
+
+.check-details {
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  opacity: 0.8;
+}
+
+.check-time {
+  color: var(--text-secondary);
+}
+
+.disputed-section {
+  background: #fef3c7;
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid #f59e0b;
+}
+
+.disputed-text {
+  color: #92400e;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.completion-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.history-item {
+  background: rgba(255, 255, 255, 0.5);
+  padding: 0.75rem;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.history-name {
+  font-weight: 600;
+  color: #92400e;
+}
+
+.history-selection {
+  font-size: 0.875rem;
+}
+
+.history-time {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
 .bet-actions {
   margin-top: 1.5rem;
   padding-top: 1.5rem;

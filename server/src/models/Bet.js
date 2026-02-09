@@ -16,11 +16,15 @@ const Bet = {
       `SELECT b.*,
               uc.name as creator_name, uc.email as creator_email,
               uo.name as opponent_name, uo.email as opponent_email,
-              uw.name as winner_name
+              uw.name as winner_name,
+              ucw.name as creator_selected_winner_name,
+              uow.name as opponent_selected_winner_name
        FROM bets b
        JOIN users uc ON b.creator_id = uc.id
        JOIN users uo ON b.opponent_id = uo.id
        LEFT JOIN users uw ON b.winner_id = uw.id
+       LEFT JOIN users ucw ON b.creator_selected_winner = ucw.id
+       LEFT JOIN users uow ON b.opponent_selected_winner = uow.id
        WHERE b.id = $1`,
       [id]
     );
@@ -172,6 +176,7 @@ const Bet = {
 
     if (userId === bet.creator_id) {
       updateFields.push(`creator_marked_complete = TRUE`);
+      updateFields.push(`creator_completed_at = CURRENT_TIMESTAMP`);
       if (winnerId) {
         updateFields.push(`creator_selected_winner = $${paramIndex}`);
         params.push(winnerId);
@@ -179,6 +184,7 @@ const Bet = {
       }
     } else if (userId === bet.opponent_id) {
       updateFields.push(`opponent_marked_complete = TRUE`);
+      updateFields.push(`opponent_completed_at = CURRENT_TIMESTAMP`);
       if (winnerId) {
         updateFields.push(`opponent_selected_winner = $${paramIndex}`);
         params.push(winnerId);

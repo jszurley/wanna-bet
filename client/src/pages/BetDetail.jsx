@@ -102,6 +102,17 @@ export default function BetDetail() {
     });
   };
 
+  const formatDateTime = (dateStr) => {
+    return new Date(dateStr).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
   return (
     <div className="bet-detail-page">
       <Link to="/" className="back-link">&larr; Back to Bets</Link>
@@ -161,15 +172,62 @@ export default function BetDetail() {
           </div>
         )}
 
-        {isLocked && !isCompleted && (
+        {bet.disputed_at && (
+          <div className="bet-section disputed-section">
+            <h3>Disputed</h3>
+            <p className="disputed-text">Participants disagreed on the winner</p>
+            <div className="completion-history">
+              <div className="history-item">
+                <span className="history-name">{bet.creator_name}</span>
+                <span className="history-selection">
+                  selected: {bet.creator_selected_winner_name || 'No winner / Draw'}
+                </span>
+                {bet.creator_completed_at && (
+                  <span className="history-time">{formatDateTime(bet.creator_completed_at)}</span>
+                )}
+              </div>
+              <div className="history-item">
+                <span className="history-name">{bet.opponent_name}</span>
+                <span className="history-selection">
+                  selected: {bet.opponent_selected_winner_name || 'No winner / Draw'}
+                </span>
+                {bet.opponent_completed_at && (
+                  <span className="history-time">{formatDateTime(bet.opponent_completed_at)}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isLocked && !isCompleted && !bet.disputed_at && (
           <div className="bet-section completion-status">
             <h3>Completion Status</h3>
             <div className="completion-checks">
               <div className={`completion-check ${bet.creator_marked_complete ? 'done' : ''}`}>
-                {bet.creator_name}: {bet.creator_marked_complete ? 'Marked complete' : 'Pending'}
+                <div className="check-header">
+                  {bet.creator_name}: {bet.creator_marked_complete ? 'Marked complete' : 'Pending'}
+                </div>
+                {bet.creator_marked_complete && (
+                  <div className="check-details">
+                    Selected winner: {bet.creator_selected_winner_name || 'No winner / Draw'}
+                    {bet.creator_completed_at && (
+                      <span className="check-time"> - {formatDateTime(bet.creator_completed_at)}</span>
+                    )}
+                  </div>
+                )}
               </div>
               <div className={`completion-check ${bet.opponent_marked_complete ? 'done' : ''}`}>
-                {bet.opponent_name}: {bet.opponent_marked_complete ? 'Marked complete' : 'Pending'}
+                <div className="check-header">
+                  {bet.opponent_name}: {bet.opponent_marked_complete ? 'Marked complete' : 'Pending'}
+                </div>
+                {bet.opponent_marked_complete && (
+                  <div className="check-details">
+                    Selected winner: {bet.opponent_selected_winner_name || 'No winner / Draw'}
+                    {bet.opponent_completed_at && (
+                      <span className="check-time"> - {formatDateTime(bet.opponent_completed_at)}</span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
