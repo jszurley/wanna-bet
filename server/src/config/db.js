@@ -95,6 +95,15 @@ const initializeDatabase = async () => {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'bets' AND column_name = 'rejected_by') THEN
           ALTER TABLE bets ADD COLUMN rejected_by INTEGER REFERENCES users(id);
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'bets' AND column_name = 'disputed_at') THEN
+          ALTER TABLE bets ADD COLUMN disputed_at TIMESTAMP;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'bets' AND column_name = 'creator_selected_winner') THEN
+          ALTER TABLE bets ADD COLUMN creator_selected_winner INTEGER REFERENCES users(id);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'bets' AND column_name = 'opponent_selected_winner') THEN
+          ALTER TABLE bets ADD COLUMN opponent_selected_winner INTEGER REFERENCES users(id);
+        END IF;
       END $$;
     `);
     console.log('Database migrations complete');

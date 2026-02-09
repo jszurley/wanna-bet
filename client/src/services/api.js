@@ -52,6 +52,7 @@ export const getPendingBets = () => api.get('/bets/pending');
 export const getUncompletedBets = () => api.get('/bets/uncompleted');
 export const getCompletedBets = () => api.get('/bets/completed');
 export const getRejectedBets = () => api.get('/bets/rejected');
+export const getDisputedBets = () => api.get('/bets/disputed');
 export const getBet = (id) => api.get(`/bets/${id}`);
 export const createBet = (data) => api.post('/bets', data);
 export const agreeToBet = (id, opponentSide) => api.post(`/bets/${id}/agree`, { opponentSide });

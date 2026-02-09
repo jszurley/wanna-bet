@@ -172,31 +172,68 @@ const Bet = {
 
     if (userId === bet.creator_id) {
       updateFields.push(`creator_marked_complete = TRUE`);
+      if (winnerId) {
+        updateFields.push(`creator_selected_winner = $${paramIndex}`);
+        params.push(winnerId);
+        paramIndex++;
+      }
     } else if (userId === bet.opponent_id) {
       updateFields.push(`opponent_marked_complete = TRUE`);
+      if (winnerId) {
+        updateFields.push(`opponent_selected_winner = $${paramIndex}`);
+        params.push(winnerId);
+        paramIndex++;
+      }
     }
 
-    if (winnerId) {
-      updateFields.push(`winner_id = $${paramIndex}`);
-      params.push(winnerId);
-      paramIndex++;
-    }
-
-    const result = await pool.query(
-      `UPDATE bets SET ${updateFields.join(', ')} WHERE id = $1 RETURNING *`,
+    await pool.query(
+      `UPDATE bets SET ${updateFields.join(', ')} WHERE id = $1`,
       params
     );
 
     // Check if both have marked complete
     const updated = await this.findById(id);
     if (updated.creator_marked_complete && updated.opponent_marked_complete) {
-      await pool.query(
-        'UPDATE bets SET completed_at = CURRENT_TIMESTAMP WHERE id = $1',
-        [id]
-      );
+      // Check if they agree on the winner
+      const creatorWinner = updated.creator_selected_winner;
+      const opponentWinner = updated.opponent_selected_winner;
+
+      if (creatorWinner === opponentWinner) {
+        // They agree (including both null = no winner)
+        await pool.query(
+          'UPDATE bets SET completed_at = CURRENT_TIMESTAMP, winner_id = $2 WHERE id = $1',
+          [id, creatorWinner]
+        );
+      } else {
+        // They disagree - mark as disputed
+        await pool.query(
+          'UPDATE bets SET disputed_at = CURRENT_TIMESTAMP WHERE id = $1',
+          [id]
+        );
+      }
     }
 
     return this.findById(id);
+  },
+
+  // Disputed bets
+  async findDisputed(userId) {
+    const result = await pool.query(
+      `SELECT b.*,
+              uc.name as creator_name, uo.name as opponent_name,
+              ucw.name as creator_selected_winner_name,
+              uow.name as opponent_selected_winner_name
+       FROM bets b
+       JOIN users uc ON b.creator_id = uc.id
+       JOIN users uo ON b.opponent_id = uo.id
+       LEFT JOIN users ucw ON b.creator_selected_winner = ucw.id
+       LEFT JOIN users uow ON b.opponent_selected_winner = uow.id
+       WHERE (b.creator_id = $1 OR b.opponent_id = $1)
+         AND b.disputed_at IS NOT NULL
+       ORDER BY b.disputed_at DESC`,
+      [userId]
+    );
+    return result.rows;
   },
 
   async delete(id) {

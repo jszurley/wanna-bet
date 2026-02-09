@@ -71,6 +71,17 @@ router.get('/rejected', auth, async (req, res) => {
   }
 });
 
+// Get disputed bets
+router.get('/disputed', auth, async (req, res) => {
+  try {
+    const bets = await Bet.findDisputed(req.user.id);
+    res.json(bets);
+  } catch (error) {
+    console.error('Get disputed bets error:', error);
+    res.status(500).json({ error: 'Failed to get disputed bets' });
+  }
+});
+
 // Get single bet
 router.get('/:id', auth, async (req, res) => {
   try {

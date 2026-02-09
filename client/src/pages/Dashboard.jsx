@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getUpcomingBets, getPendingBets, getUncompletedBets, getCompletedBets, getRejectedBets } from '../services/api';
+import { getUpcomingBets, getPendingBets, getUncompletedBets, getCompletedBets, getRejectedBets, getDisputedBets } from '../services/api';
 import BetCard from '../components/BetCard';
 import './Dashboard.css';
 
@@ -8,7 +8,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('upcoming');
   const [bets, setBets] = useState([]);
-  const [counts, setCounts] = useState({ upcoming: 0, pending: 0, uncompleted: 0, completed: 0, rejected: 0 });
+  const [counts, setCounts] = useState({ upcoming: 0, pending: 0, uncompleted: 0, completed: 0, rejected: 0, disputed: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,19 +21,21 @@ export default function Dashboard() {
 
   const loadCounts = async () => {
     try {
-      const [upcoming, pending, uncompleted, completed, rejected] = await Promise.all([
+      const [upcoming, pending, uncompleted, completed, rejected, disputed] = await Promise.all([
         getUpcomingBets(),
         getPendingBets(),
         getUncompletedBets(),
         getCompletedBets(),
-        getRejectedBets()
+        getRejectedBets(),
+        getDisputedBets()
       ]);
       setCounts({
         upcoming: upcoming.data.length,
         pending: pending.data.length,
         uncompleted: uncompleted.data.length,
         completed: completed.data.length,
-        rejected: rejected.data.length
+        rejected: rejected.data.length,
+        disputed: disputed.data.length
       });
     } catch (error) {
       console.error('Failed to load counts:', error);
@@ -57,6 +59,9 @@ export default function Dashboard() {
         case 'rejected':
           response = await getRejectedBets();
           break;
+        case 'disputed':
+          response = await getDisputedBets();
+          break;
         default:
           response = await getUpcomingBets();
       }
@@ -74,6 +79,7 @@ export default function Dashboard() {
     { id: 'pending', label: 'Pending' },
     { id: 'uncompleted', label: 'Past Due' },
     { id: 'completed', label: 'Completed' },
+    { id: 'disputed', label: 'Disputed' },
     { id: 'rejected', label: 'Rejected' }
   ];
 
@@ -110,6 +116,7 @@ export default function Dashboard() {
             {activeTab === 'pending' && "No pending bets waiting for agreement."}
             {activeTab === 'uncompleted' && "No past due bets. Great job!"}
             {activeTab === 'completed' && "No completed bets yet."}
+            {activeTab === 'disputed' && "No disputed bets."}
             {activeTab === 'rejected' && "No rejected bets."}
           </p>
           {activeTab === 'upcoming' && (
