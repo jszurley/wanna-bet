@@ -21,6 +21,23 @@ const clientBuildPath = path.join(__dirname, '../../client/dist');
 console.log('Static files path:', clientBuildPath);
 console.log('Static files exist:', fs.existsSync(clientBuildPath));
 
+// Explicit route for assets (bypass express.static issues)
+app.get('/assets/:filename', (req, res) => {
+  const filePath = path.join(clientBuildPath, 'assets', req.params.filename);
+  console.log('Asset request:', req.params.filename, 'Path:', filePath, 'Exists:', fs.existsSync(filePath));
+
+  if (fs.existsSync(filePath)) {
+    if (req.params.filename.endsWith('.css')) {
+      res.type('text/css');
+    } else if (req.params.filename.endsWith('.js')) {
+      res.type('application/javascript');
+    }
+    return res.sendFile(filePath);
+  }
+  res.status(404).send('Asset not found');
+});
+
+// Serve other static files
 app.use(express.static(clientBuildPath));
 
 // Security headers for API routes only
