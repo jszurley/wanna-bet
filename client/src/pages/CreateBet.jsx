@@ -16,6 +16,7 @@ export default function CreateBet() {
     title: '',
     description: '',
     prizeDescription: '',
+    creatorSide: '',
     startDate: new Date().toISOString().split('T')[0],
     endDate: ''
   });
@@ -58,6 +59,7 @@ export default function CreateBet() {
         title: formData.title,
         description: formData.description,
         prizeDescription: formData.prizeDescription,
+        creatorSide: formData.creatorSide,
         startDate: formData.startDate,
         endDate: formData.endDate
       });
@@ -160,6 +162,20 @@ export default function CreateBet() {
               rows={2}
               placeholder="What does the loser owe the winner?"
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="creatorSide">Your Side / Prediction</label>
+            <input
+              type="text"
+              id="creatorSide"
+              name="creatorSide"
+              value={formData.creatorSide}
+              onChange={handleChange}
+              required
+              placeholder="e.g., Chiefs will win, Over 45 points, etc."
+            />
+            <small className="form-hint">What outcome are you betting on?</small>
           </div>
 
           <div className="form-row">

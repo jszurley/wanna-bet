@@ -14,6 +14,7 @@ export default function BetDetail() {
   const [error, setError] = useState('');
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [selectedWinner, setSelectedWinner] = useState('');
+  const [opponentSide, setOpponentSide] = useState('');
 
   useEffect(() => {
     loadBet();
@@ -31,9 +32,13 @@ export default function BetDetail() {
   };
 
   const handleAgree = async () => {
+    if (!opponentSide.trim()) {
+      setError('Please enter your side of the bet before agreeing');
+      return;
+    }
     setActionLoading(true);
     try {
-      await agreeToBet(id);
+      await agreeToBet(id, opponentSide);
       await loadBet();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to agree');
@@ -115,11 +120,13 @@ export default function BetDetail() {
           <div className="participant">
             <span className="participant-label">Created by</span>
             <span className="participant-name">{bet.creator_name}</span>
+            {bet.creator_side && <span className="participant-side">"{bet.creator_side}"</span>}
           </div>
           <div className="vs">VS</div>
           <div className="participant">
             <span className="participant-label">Opponent</span>
             <span className="participant-name">{bet.opponent_name}</span>
+            {bet.opponent_side && <span className="participant-side">"{bet.opponent_side}"</span>}
           </div>
         </div>
 
@@ -170,22 +177,35 @@ export default function BetDetail() {
 
         <div className="bet-actions">
           {isPending && isOpponent && (
-            <>
-              <button
-                className="btn btn-primary"
-                onClick={handleAgree}
-                disabled={actionLoading}
-              >
-                {actionLoading ? 'Processing...' : 'Agree to Bet'}
-              </button>
-              <button
-                className="btn btn-outline"
-                onClick={handleDecline}
-                disabled={actionLoading}
-              >
-                Decline
-              </button>
-            </>
+            <div className="agree-section">
+              <div className="form-group">
+                <label htmlFor="opponentSide">Your Side / Prediction</label>
+                <input
+                  type="text"
+                  id="opponentSide"
+                  value={opponentSide}
+                  onChange={(e) => setOpponentSide(e.target.value)}
+                  placeholder="What outcome are you betting on?"
+                />
+                <small className="form-hint">Enter your side before agreeing to the bet</small>
+              </div>
+              <div className="action-buttons">
+                <button
+                  className="btn btn-primary"
+                  onClick={handleAgree}
+                  disabled={actionLoading || !opponentSide.trim()}
+                >
+                  {actionLoading ? 'Processing...' : 'Agree to Bet'}
+                </button>
+                <button
+                  className="btn btn-outline"
+                  onClick={handleDecline}
+                  disabled={actionLoading}
+                >
+                  Decline
+                </button>
+              </div>
+            </div>
           )}
 
           {isPending && isCreator && (

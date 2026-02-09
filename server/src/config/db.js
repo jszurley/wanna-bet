@@ -78,6 +78,26 @@ const initializeDatabase = async () => {
     } else {
       console.log('Database connected - schema already exists');
     }
+
+    // Add new columns if they don't exist (migrations)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'bets' AND column_name = 'creator_side') THEN
+          ALTER TABLE bets ADD COLUMN creator_side VARCHAR(255);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'bets' AND column_name = 'opponent_side') THEN
+          ALTER TABLE bets ADD COLUMN opponent_side VARCHAR(255);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'bets' AND column_name = 'rejected_at') THEN
+          ALTER TABLE bets ADD COLUMN rejected_at TIMESTAMP;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'bets' AND column_name = 'rejected_by') THEN
+          ALTER TABLE bets ADD COLUMN rejected_by INTEGER REFERENCES users(id);
+        END IF;
+      END $$;
+    `);
+    console.log('Database migrations complete');
   } catch (error) {
     console.error('Database initialization error:', error.message);
   }

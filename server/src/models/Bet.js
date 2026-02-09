@@ -1,12 +1,12 @@
 const pool = require('../config/db');
 
 const Bet = {
-  async create(connectionId, creatorId, opponentId, title, description, prizeDescription, startDate, endDate) {
+  async create(connectionId, creatorId, opponentId, title, description, prizeDescription, startDate, endDate, creatorSide) {
     const result = await pool.query(
-      `INSERT INTO bets (connection_id, creator_id, opponent_id, title, description, prize_description, start_date, end_date, creator_agreed)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
+      `INSERT INTO bets (connection_id, creator_id, opponent_id, title, description, prize_description, start_date, end_date, creator_agreed, creator_side)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE, $9)
        RETURNING *`,
-      [connectionId, creatorId, opponentId, title, description, prizeDescription, startDate, endDate]
+      [connectionId, creatorId, opponentId, title, description, prizeDescription, startDate, endDate, creatorSide]
     );
     return result.rows[0];
   },
@@ -64,7 +64,7 @@ const Bet = {
     return result.rows;
   },
 
-  // Pending bets (not yet agreed by opponent)
+  // Pending bets (not yet agreed by opponent, not rejected)
   async findPending(userId) {
     const result = await pool.query(
       `SELECT b.*,
@@ -74,6 +74,7 @@ const Bet = {
        JOIN users uo ON b.opponent_id = uo.id
        WHERE (b.creator_id = $1 OR b.opponent_id = $1)
          AND b.opponent_agreed = FALSE
+         AND b.rejected_at IS NULL
        ORDER BY b.created_at DESC`,
       [userId]
     );
@@ -118,21 +119,46 @@ const Bet = {
     return result.rows;
   },
 
-  // Opponent agrees to bet
-  async agree(id) {
+  // Opponent agrees to bet (with their side)
+  async agree(id, opponentSide) {
     const result = await pool.query(
       `UPDATE bets
-       SET opponent_agreed = TRUE, locked_at = CURRENT_TIMESTAMP
+       SET opponent_agreed = TRUE, locked_at = CURRENT_TIMESTAMP, opponent_side = $2
        WHERE id = $1
        RETURNING *`,
-      [id]
+      [id, opponentSide]
     );
     return result.rows[0];
   },
 
-  // Decline a pending bet
-  async decline(id) {
-    await pool.query('DELETE FROM bets WHERE id = $1', [id]);
+  // Decline a pending bet (mark as rejected instead of deleting)
+  async decline(id, userId) {
+    const result = await pool.query(
+      `UPDATE bets
+       SET rejected_at = CURRENT_TIMESTAMP, rejected_by = $2
+       WHERE id = $1
+       RETURNING *`,
+      [id, userId]
+    );
+    return result.rows[0];
+  },
+
+  // Rejected bets
+  async findRejected(userId) {
+    const result = await pool.query(
+      `SELECT b.*,
+              uc.name as creator_name, uo.name as opponent_name,
+              ur.name as rejected_by_name
+       FROM bets b
+       JOIN users uc ON b.creator_id = uc.id
+       JOIN users uo ON b.opponent_id = uo.id
+       LEFT JOIN users ur ON b.rejected_by = ur.id
+       WHERE (b.creator_id = $1 OR b.opponent_id = $1)
+         AND b.rejected_at IS NOT NULL
+       ORDER BY b.rejected_at DESC`,
+      [userId]
+    );
+    return result.rows;
   },
 
   // Mark as complete (by one user)

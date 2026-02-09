@@ -60,6 +60,17 @@ router.get('/completed', auth, async (req, res) => {
   }
 });
 
+// Get rejected bets
+router.get('/rejected', auth, async (req, res) => {
+  try {
+    const bets = await Bet.findRejected(req.user.id);
+    res.json(bets);
+  } catch (error) {
+    console.error('Get rejected bets error:', error);
+    res.status(500).json({ error: 'Failed to get rejected bets' });
+  }
+});
+
 // Get single bet
 router.get('/:id', auth, async (req, res) => {
   try {
@@ -82,10 +93,10 @@ router.get('/:id', auth, async (req, res) => {
 // Create bet
 router.post('/', auth, async (req, res) => {
   try {
-    const { opponentId, title, description, prizeDescription, startDate, endDate } = req.body;
+    const { opponentId, title, description, prizeDescription, startDate, endDate, creatorSide } = req.body;
 
-    if (!opponentId || !title || !description || !prizeDescription || !startDate || !endDate) {
-      return res.status(400).json({ error: 'All fields are required' });
+    if (!opponentId || !title || !description || !prizeDescription || !startDate || !endDate || !creatorSide) {
+      return res.status(400).json({ error: 'All fields are required including your side of the bet' });
     }
 
     // Check if users are connected
@@ -109,7 +120,8 @@ router.post('/', auth, async (req, res) => {
       description,
       prizeDescription,
       startDate,
-      endDate
+      endDate,
+      creatorSide
     );
 
     const fullBet = await Bet.findById(bet.id);
@@ -123,6 +135,7 @@ router.post('/', auth, async (req, res) => {
 // Agree to bet (opponent)
 router.post('/:id/agree', auth, async (req, res) => {
   try {
+    const { opponentSide } = req.body;
     const bet = await Bet.findById(req.params.id);
     if (!bet) {
       return res.status(404).json({ error: 'Bet not found' });
@@ -136,7 +149,11 @@ router.post('/:id/agree', auth, async (req, res) => {
       return res.status(400).json({ error: 'Bet already agreed' });
     }
 
-    const updated = await Bet.agree(bet.id);
+    if (!opponentSide) {
+      return res.status(400).json({ error: 'You must enter your side of the bet' });
+    }
+
+    const updated = await Bet.agree(bet.id, opponentSide);
     const fullBet = await Bet.findById(updated.id);
     res.json(fullBet);
   } catch (error) {
@@ -161,7 +178,7 @@ router.post('/:id/decline', auth, async (req, res) => {
       return res.status(400).json({ error: 'Cannot decline a locked bet' });
     }
 
-    await Bet.decline(bet.id);
+    await Bet.decline(bet.id, req.user.id);
     res.json({ message: 'Bet declined' });
   } catch (error) {
     console.error('Decline bet error:', error);
