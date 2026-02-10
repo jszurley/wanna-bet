@@ -3,6 +3,8 @@ const Bet = require('../models/Bet');
 const GroupBet = require('../models/GroupBet');
 const Connection = require('../models/Connection');
 const TrashTalk = require('../models/TrashTalk');
+const User = require('../models/User');
+const sms = require('../services/sms');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -202,6 +204,15 @@ router.post('/', auth, async (req, res) => {
         creatorOptionIndex
       );
 
+      // Send SMS notifications to invited participants
+      const creator = await User.findById(req.user.id);
+      for (const userId of invitedUserIds) {
+        const invitedUser = await User.findById(userId);
+        if (invitedUser) {
+          sms.notifyUser(invitedUser, 'groupBetInvite', creator.name, title);
+        }
+      }
+
       res.status(201).json(bet);
       return;
     }
@@ -228,6 +239,13 @@ router.post('/', auth, async (req, res) => {
       endDate,
       creatorSide
     );
+
+    // Send SMS notification to opponent
+    const creator = await User.findById(req.user.id);
+    const opponent = await User.findById(opponentId);
+    if (opponent) {
+      sms.notifyUser(opponent, 'newBetInvite', creator.name, title);
+    }
 
     const fullBet = await Bet.findById(bet.id);
     res.status(201).json(fullBet);
@@ -483,7 +501,26 @@ router.post('/:id/join', auth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid option selected' });
     }
 
+    const wasLocked = !!bet.locked_at;
     const updatedBet = await GroupBet.joinBet(bet.id, req.user.id, selectedOptionId);
+
+    // Send SMS notifications to other joined participants
+    const joiner = await User.findById(req.user.id);
+    const participants = await GroupBet.getParticipants(bet.id);
+    for (const p of participants) {
+      if (p.user_id !== req.user.id && p.status === 'joined') {
+        const participantUser = await User.findById(p.user_id);
+        if (participantUser) {
+          // Notify about new joiner
+          sms.notifyUser(participantUser, 'participantJoined', joiner.name, bet.title);
+          // If bet just locked, send lock notification too
+          if (!wasLocked && updatedBet.locked_at) {
+            sms.notifyUser(participantUser, 'betLocked', bet.title);
+          }
+        }
+      }
+    }
+
     res.json(updatedBet);
   } catch (error) {
     console.error('Join group bet error:', error);
@@ -550,6 +587,19 @@ router.post('/:id/set-winner', auth, async (req, res) => {
     }
 
     const updatedBet = await GroupBet.setWinningOption(bet.id, req.user.id, winningOptionId);
+
+    // Notify all participants about bet completion
+    const participants = await GroupBet.getParticipants(bet.id);
+    for (const p of participants) {
+      if (p.status === 'joined') {
+        const participantUser = await User.findById(p.user_id);
+        if (participantUser) {
+          const isWinner = p.selected_option_id === parseInt(winningOptionId);
+          sms.notifyUser(participantUser, 'betCompleted', bet.title, isWinner);
+        }
+      }
+    }
+
     res.json(updatedBet);
   } catch (error) {
     console.error('Set winner error:', error);

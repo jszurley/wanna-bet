@@ -26,7 +26,9 @@ export default function Navbar() {
         </div>
 
         <div className="navbar-user">
-          <span className="user-name">{user?.name}</span>
+          <Link to="/profile" className={`user-name-link ${isActive('/profile') ? 'active' : ''}`}>
+            {user?.name}
+          </Link>
           <button onClick={logout} className="btn btn-outline btn-sm">
             Logout
           </button>

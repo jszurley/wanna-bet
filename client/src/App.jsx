@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Connections from './pages/Connections';
 import CreateBet from './pages/CreateBet';
 import BetDetail from './pages/BetDetail';
+import Profile from './pages/Profile';
 
 function App() {
   const { user, loading } = useAuth();
@@ -67,6 +68,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <BetDetail />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             }
           />

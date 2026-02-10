@@ -15,7 +15,7 @@ const User = {
 
   async findById(id) {
     const result = await pool.query(
-      'SELECT id, email, name, created_at FROM users WHERE id = $1',
+      'SELECT id, email, name, phone, sms_notifications, created_at FROM users WHERE id = $1',
       [id]
     );
     return result.rows[0];
@@ -33,11 +33,11 @@ const User = {
     return bcrypt.compare(password, hash);
   },
 
-  async updateProfile(id, { name, email }) {
+  async updateProfile(id, { name, email, phone, sms_notifications }) {
     const result = await pool.query(
-      `UPDATE users SET name = $1, email = $2 WHERE id = $3
-       RETURNING id, email, name, created_at`,
-      [name, email.toLowerCase(), id]
+      `UPDATE users SET name = $1, email = $2, phone = $3, sms_notifications = $4 WHERE id = $5
+       RETURNING id, email, name, phone, sms_notifications, created_at`,
+      [name, email.toLowerCase(), phone || null, sms_notifications !== false, id]
     );
     return result.rows[0];
   },

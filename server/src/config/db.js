@@ -194,6 +194,19 @@ const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_bet_participants_bet ON bet_participants(bet_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_bet_participants_user ON bet_participants(user_id)`);
 
+    // Add phone number and notification preferences to users
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'phone') THEN
+          ALTER TABLE users ADD COLUMN phone VARCHAR(20);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'sms_notifications') THEN
+          ALTER TABLE users ADD COLUMN sms_notifications BOOLEAN DEFAULT TRUE;
+        END IF;
+      END $$;
+    `);
+
     console.log('Database migrations complete');
   } catch (error) {
     console.error('Database initialization error:', error.message);

@@ -86,7 +86,9 @@ router.post('/login', async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name
+        name: user.name,
+        phone: user.phone,
+        sms_notifications: user.sms_notifications
       }
     });
   } catch (error) {
@@ -108,7 +110,7 @@ router.get('/me', auth, async (req, res) => {
 // Update profile
 router.put('/profile', auth, async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, phone, sms_notifications } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email are required' });
@@ -121,7 +123,20 @@ router.put('/profile', auth, async (req, res) => {
       }
     }
 
-    const updatedUser = await User.updateProfile(req.user.id, { name, email });
+    // Basic phone validation if provided
+    if (phone) {
+      const cleanPhone = phone.replace(/\D/g, '');
+      if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+        return res.status(400).json({ error: 'Invalid phone number format' });
+      }
+    }
+
+    const updatedUser = await User.updateProfile(req.user.id, {
+      name,
+      email,
+      phone: phone || null,
+      sms_notifications
+    });
     res.json({ user: updatedUser });
   } catch (error) {
     console.error('Update profile error:', error);
