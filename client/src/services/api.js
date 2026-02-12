@@ -71,4 +71,9 @@ export const joinGroupBet = (id, selectedOptionId) => api.post(`/bets/${id}/join
 export const declineGroupBetInvite = (id) => api.post(`/bets/${id}/decline-invite`);
 export const setWinningOption = (id, winningOptionId) => api.post(`/bets/${id}/set-winner`, { winningOptionId });
 
+// Wallet
+export const getWalletEntries = () => api.get('/wallet');
+export const setPaymentMethod = (id, method) => api.put(`/wallet/${id}/payment-method`, { method });
+export const markWalletPaid = (id) => api.put(`/wallet/${id}/mark-paid`);
+
 export default api;

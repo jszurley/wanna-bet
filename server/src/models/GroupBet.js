@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const Wallet = require('./Wallet');
 
 const GroupBet = {
   async create(creatorId, title, description, prizeDescription, startDate, endDate, options, invitedUserIds, creatorOptionIndex) {
@@ -156,6 +157,26 @@ const GroupBet = {
          WHERE id = $1`,
         [betId, optionId]
       );
+
+      // Get the bet's prize description
+      const prizeResult = await client.query(
+        `SELECT prize_description FROM bets WHERE id = $1`,
+        [betId]
+      );
+      const prizeDescription = prizeResult.rows[0].prize_description;
+
+      // Find losers: joined participants who didn't pick the winning option
+      const losersResult = await client.query(
+        `SELECT user_id FROM bet_participants
+         WHERE bet_id = $1 AND status = 'joined' AND (selected_option_id != $2 OR selected_option_id IS NULL)`,
+        [betId, optionId]
+      );
+      const loserIds = losersResult.rows.map(r => r.user_id);
+
+      // Create wallet entries for losers (creditor = bet creator)
+      if (loserIds.length > 0) {
+        await Wallet.createGroupEntries(client, betId, creatorId, loserIds, prizeDescription);
+      }
 
       await client.query('COMMIT');
       return this.findByIdWithDetails(betId);

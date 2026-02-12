@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import {
   getBet, agreeToBet, declineBet, completeBet, resolveDispute,
   getTrashTalk, addTrashTalk, getBetDetails, joinGroupBet,
-  declineGroupBetInvite, setWinningOption
+  declineGroupBetInvite, setWinningOption,
+  getWalletEntries, setPaymentMethod, markWalletPaid
 } from '../services/api';
 import './BetDetail.css';
 
@@ -25,6 +26,7 @@ export default function BetDetail() {
   const [trashTalk, setTrashTalk] = useState([]);
   const [showTrashTalkModal, setShowTrashTalkModal] = useState(false);
   const [trashTalkMessage, setTrashTalkMessage] = useState('');
+  const [walletEntries, setWalletEntries] = useState([]);
 
   // Group bet state
   const [selectedOptionId, setSelectedOptionId] = useState('');
@@ -35,6 +37,7 @@ export default function BetDetail() {
   useEffect(() => {
     loadBet();
     loadTrashTalk();
+    loadWalletEntries();
   }, [id]);
 
   const loadBet = async () => {
@@ -69,6 +72,40 @@ export default function BetDetail() {
       setTrashTalk(response.data);
     } catch (err) {
       console.error('Failed to load trash talk:', err);
+    }
+  };
+
+  const loadWalletEntries = async () => {
+    try {
+      const response = await getWalletEntries();
+      const betEntries = response.data.filter(e => e.bet_id === parseInt(id));
+      setWalletEntries(betEntries);
+    } catch (err) {
+      console.error('Failed to load wallet entries:', err);
+    }
+  };
+
+  const handleSetPaymentMethod = async (entryId, method) => {
+    setActionLoading(true);
+    try {
+      await setPaymentMethod(entryId, method);
+      await loadWalletEntries();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to set payment method');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleMarkWalletPaid = async (entryId) => {
+    setActionLoading(true);
+    try {
+      await markWalletPaid(entryId);
+      await loadWalletEntries();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to mark as paid');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -245,6 +282,72 @@ export default function BetDetail() {
     });
   };
 
+  const STATUS_LABELS = {
+    awaiting_method: 'Awaiting Method',
+    on_tab: 'On Tab',
+    payment_pending: 'Payment Pending',
+    paid: 'Paid'
+  };
+
+  const renderWalletSection = () => {
+    if (walletEntries.length === 0) return null;
+
+    return (
+      <div className="bet-section wallet-section">
+        <h3>Payment</h3>
+        {walletEntries.map(entry => {
+          const isDebtor = entry.debtor_id === user?.id;
+          const isCreditor = entry.creditor_id === user?.id;
+
+          return (
+            <div key={entry.id} className="wallet-entry-inline">
+              <div className="wallet-inline-info">
+                <span className="wallet-inline-person">
+                  {isDebtor ? `You owe ${entry.creditor_name}` : `${entry.debtor_name} owes you`}
+                </span>
+                <span className="wallet-inline-prize">{entry.prize_description}</span>
+                <span className={`wallet-status ${entry.status}`}>
+                  {STATUS_LABELS[entry.status]}
+                </span>
+              </div>
+
+              {isDebtor && entry.status === 'awaiting_method' && (
+                <div className="wallet-inline-actions">
+                  <button
+                    className="btn btn-tab"
+                    onClick={() => handleSetPaymentMethod(entry.id, 'on_tab')}
+                    disabled={actionLoading}
+                  >
+                    Put on Tab
+                  </button>
+                  <button
+                    className="btn btn-sending"
+                    onClick={() => handleSetPaymentMethod(entry.id, 'payment_pending')}
+                    disabled={actionLoading}
+                  >
+                    Sending Payment
+                  </button>
+                </div>
+              )}
+
+              {isCreditor && (entry.status === 'on_tab' || entry.status === 'payment_pending') && (
+                <div className="wallet-inline-actions">
+                  <button
+                    className="btn btn-mark-paid"
+                    onClick={() => handleMarkWalletPaid(entry.id)}
+                    disabled={actionLoading}
+                  >
+                    Mark as Paid
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   // Group Bet Rendering
   if (isGroupBet) {
     return (
@@ -348,6 +451,8 @@ export default function BetDetail() {
               <p>No participants picked the winning option: {bet.winning_option_text}</p>
             </div>
           )}
+
+          {isCompleted && renderWalletSection()}
 
           {/* Trash Talk Section */}
           <div className="bet-section trash-talk-section">
@@ -696,6 +801,8 @@ export default function BetDetail() {
             <p className="winner-name">{bet.winner_name}</p>
           </div>
         )}
+
+        {isCompleted && renderWalletSection()}
 
         {bet.disputed_at && (
           <div className="bet-section disputed-section">

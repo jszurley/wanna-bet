@@ -10,6 +10,7 @@ import Connections from './pages/Connections';
 import CreateBet from './pages/CreateBet';
 import BetDetail from './pages/BetDetail';
 import Profile from './pages/Profile';
+import Wallet from './pages/Wallet';
 
 function App() {
   const { user, loading } = useAuth();
@@ -68,6 +69,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <BetDetail />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/wallet"
+            element={
+              <ProtectedRoute>
+                <Wallet />
               </ProtectedRoute>
             }
           />

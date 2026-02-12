@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const Wallet = require('./Wallet');
 
 const Bet = {
   async create(connectionId, creatorId, opponentId, title, description, prizeDescription, startDate, endDate, creatorSide) {
@@ -220,6 +221,11 @@ const Bet = {
           'UPDATE bets SET completed_at = CURRENT_TIMESTAMP, winner_id = $2 WHERE id = $1',
           [id, creatorWinner]
         );
+        // Create wallet entry if there's a winner
+        if (creatorWinner) {
+          const loserId = creatorWinner === updated.creator_id ? updated.opponent_id : updated.creator_id;
+          await Wallet.createEntry(id, creatorWinner, loserId, updated.prize_description);
+        }
       } else {
         // They disagree - mark as disputed
         await pool.query(
@@ -309,6 +315,11 @@ const Bet = {
           'UPDATE bets SET completed_at = CURRENT_TIMESTAMP, winner_id = $2, disputed_at = NULL WHERE id = $1',
           [id, creatorWinner]
         );
+        // Create wallet entry if there's a winner
+        if (creatorWinner) {
+          const loserId = creatorWinner === updated.creator_id ? updated.opponent_id : updated.creator_id;
+          await Wallet.createEntry(id, creatorWinner, loserId, updated.prize_description);
+        }
       }
       // If they still disagree, leave in disputed (disputed_at remains set)
     }

@@ -23,6 +23,9 @@ export default function Navbar() {
           <Link to="/connections" className={`nav-link ${isActive('/connections') ? 'active' : ''}`}>
             Connections
           </Link>
+          <Link to="/wallet" className={`nav-link ${isActive('/wallet') ? 'active' : ''}`}>
+            Wallet
+          </Link>
         </div>
 
         <div className="navbar-user">

@@ -207,6 +207,25 @@ const initializeDatabase = async () => {
       END $$;
     `);
 
+    // Create wallet_entries table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS wallet_entries (
+        id SERIAL PRIMARY KEY,
+        bet_id INTEGER REFERENCES bets(id) ON DELETE CASCADE,
+        creditor_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        debtor_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        prize_description TEXT NOT NULL,
+        status VARCHAR(20) DEFAULT 'awaiting_method',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        method_set_at TIMESTAMP,
+        paid_at TIMESTAMP,
+        UNIQUE(bet_id, debtor_id)
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_wallet_entries_creditor ON wallet_entries(creditor_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_wallet_entries_debtor ON wallet_entries(debtor_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_wallet_entries_bet ON wallet_entries(bet_id)`);
+
     console.log('Database migrations complete');
   } catch (error) {
     console.error('Database initialization error:', error.message);

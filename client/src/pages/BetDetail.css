@@ -720,6 +720,118 @@
   opacity: 0.6;
 }
 
+/* Wallet / Payment Section */
+.wallet-section {
+  background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid #7c3aed;
+}
+
+.wallet-section h3 {
+  color: #5b21b6;
+}
+
+.wallet-entry-inline {
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.wallet-inline-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wallet-inline-person {
+  font-weight: 600;
+  color: #5b21b6;
+  font-size: 0.9375rem;
+}
+
+.wallet-inline-prize {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.wallet-status {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.wallet-status.awaiting_method {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.wallet-status.on_tab {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.wallet-status.payment_pending {
+  background: #fce7f3;
+  color: #9d174d;
+}
+
+.wallet-status.paid {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.wallet-inline-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.wallet-inline-actions .btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.btn-tab {
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-tab:hover {
+  background: #4f46e5;
+}
+
+.btn-sending {
+  background: #ec4899;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-sending:hover {
+  background: #db2777;
+}
+
+.btn-mark-paid {
+  background: var(--secondary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-mark-paid:hover {
+  background: var(--secondary-dark);
+}
+
 @media (max-width: 480px) {
   .bet-detail-card {
     padding: 1rem;
@@ -757,5 +869,14 @@
 
   .participants-display.compact .participant-card {
     font-size: 0.8125rem;
+  }
+
+  .wallet-inline-actions {
+    flex-direction: column;
+  }
+
+  .wallet-inline-actions .btn {
+    width: 100%;
+    text-align: center;
   }
 }
