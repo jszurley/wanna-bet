@@ -1,5 +1,5 @@
 const pool = require('../config/db');
-const Wallet = require('./Wallet');
+const Chip = require('./Chip');
 
 const Bet = {
   async create(connectionId, creatorId, opponentId, title, description, prizeDescription, startDate, endDate, creatorSide) {
@@ -221,10 +221,19 @@ const Bet = {
           'UPDATE bets SET completed_at = CURRENT_TIMESTAMP, winner_id = $2 WHERE id = $1',
           [id, creatorWinner]
         );
-        // Create wallet entry if there's a winner
+        // Create chip if there's a winner
         if (creatorWinner) {
           const loserId = creatorWinner === updated.creator_id ? updated.opponent_id : updated.creator_id;
-          await Wallet.createEntry(id, creatorWinner, loserId, updated.prize_description);
+          await Chip.createChip(id, creatorWinner, loserId, updated.prize_description);
+        }
+        // Handle staked chip
+        if (updated.staked_chip_id) {
+          if (creatorWinner) {
+            await Chip.resolveStakedChip(updated.staked_chip_id, creatorWinner);
+          } else {
+            // Draw - unstake
+            await Chip.unstakeChip(updated.staked_chip_id);
+          }
         }
       } else {
         // They disagree - mark as disputed
@@ -315,10 +324,18 @@ const Bet = {
           'UPDATE bets SET completed_at = CURRENT_TIMESTAMP, winner_id = $2, disputed_at = NULL WHERE id = $1',
           [id, creatorWinner]
         );
-        // Create wallet entry if there's a winner
+        // Create chip if there's a winner
         if (creatorWinner) {
           const loserId = creatorWinner === updated.creator_id ? updated.opponent_id : updated.creator_id;
-          await Wallet.createEntry(id, creatorWinner, loserId, updated.prize_description);
+          await Chip.createChip(id, creatorWinner, loserId, updated.prize_description);
+        }
+        // Handle staked chip
+        if (updated.staked_chip_id) {
+          if (creatorWinner) {
+            await Chip.resolveStakedChip(updated.staked_chip_id, creatorWinner);
+          } else {
+            await Chip.unstakeChip(updated.staked_chip_id);
+          }
         }
       }
       // If they still disagree, leave in disputed (disputed_at remains set)

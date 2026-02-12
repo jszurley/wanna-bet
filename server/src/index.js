@@ -9,7 +9,7 @@ const path = require('path');
 const authRoutes = require('./routes/auth');
 const connectionsRoutes = require('./routes/connections');
 const betsRoutes = require('./routes/bets');
-const walletRoutes = require('./routes/wallet');
+const chipsRoutes = require('./routes/chips');
 
 const app = express();
 
@@ -76,7 +76,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/connections', connectionsRoutes);
 app.use('/api/bets', betsRoutes);
-app.use('/api/wallet', walletRoutes);
+app.use('/api/chips', chipsRoutes);
 
 // Serve React app for non-API routes
 app.get('*', (req, res) => {

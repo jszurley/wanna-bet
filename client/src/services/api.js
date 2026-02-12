@@ -71,9 +71,13 @@ export const joinGroupBet = (id, selectedOptionId) => api.post(`/bets/${id}/join
 export const declineGroupBetInvite = (id) => api.post(`/bets/${id}/decline-invite`);
 export const setWinningOption = (id, winningOptionId) => api.post(`/bets/${id}/set-winner`, { winningOptionId });
 
-// Wallet
-export const getWalletEntries = () => api.get('/wallet');
-export const setPaymentMethod = (id, method) => api.put(`/wallet/${id}/payment-method`, { method });
-export const markWalletPaid = (id) => api.put(`/wallet/${id}/mark-paid`);
+// Chips
+export const getChips = () => api.get('/chips');
+export const getHeldChips = () => api.get('/chips/held');
+export const getDebtChips = () => api.get('/chips/debts');
+export const getBetChips = (betId) => api.get(`/chips/bet/${betId}`);
+export const offerChip = (chipId, debtChipId) => api.post(`/chips/${chipId}/offer`, { debtChipId });
+export const acceptChip = (chipId) => api.post(`/chips/${chipId}/accept`);
+export const declineChip = (chipId) => api.post(`/chips/${chipId}/decline`);
 
 export default api;

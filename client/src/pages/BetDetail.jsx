@@ -5,7 +5,7 @@ import {
   getBet, agreeToBet, declineBet, completeBet, resolveDispute,
   getTrashTalk, addTrashTalk, getBetDetails, joinGroupBet,
   declineGroupBetInvite, setWinningOption,
-  getWalletEntries, setPaymentMethod, markWalletPaid
+  getBetChips, getHeldChips, offerChip, acceptChip, declineChip
 } from '../services/api';
 import './BetDetail.css';
 
@@ -26,7 +26,11 @@ export default function BetDetail() {
   const [trashTalk, setTrashTalk] = useState([]);
   const [showTrashTalkModal, setShowTrashTalkModal] = useState(false);
   const [trashTalkMessage, setTrashTalkMessage] = useState('');
-  const [walletEntries, setWalletEntries] = useState([]);
+  const [betChips, setBetChips] = useState([]);
+  const [heldChips, setHeldChips] = useState([]);
+  const [showChipOfferModal, setShowChipOfferModal] = useState(false);
+  const [selectedDebtChipId, setSelectedDebtChipId] = useState(null);
+  const [selectedOfferChipId, setSelectedOfferChipId] = useState('');
 
   // Group bet state
   const [selectedOptionId, setSelectedOptionId] = useState('');
@@ -37,7 +41,7 @@ export default function BetDetail() {
   useEffect(() => {
     loadBet();
     loadTrashTalk();
-    loadWalletEntries();
+    loadBetChips();
   }, [id]);
 
   const loadBet = async () => {
@@ -75,35 +79,54 @@ export default function BetDetail() {
     }
   };
 
-  const loadWalletEntries = async () => {
+  const loadBetChips = async () => {
     try {
-      const response = await getWalletEntries();
-      const betEntries = response.data.filter(e => e.bet_id === parseInt(id));
-      setWalletEntries(betEntries);
+      const [chipsRes, heldRes] = await Promise.all([
+        getBetChips(id),
+        getHeldChips()
+      ]);
+      setBetChips(chipsRes.data);
+      setHeldChips(heldRes.data);
     } catch (err) {
-      console.error('Failed to load wallet entries:', err);
+      console.error('Failed to load bet chips:', err);
     }
   };
 
-  const handleSetPaymentMethod = async (entryId, method) => {
+  const handleChipOffer = async () => {
+    if (!selectedOfferChipId || !selectedDebtChipId) return;
     setActionLoading(true);
     try {
-      await setPaymentMethod(entryId, method);
-      await loadWalletEntries();
+      await offerChip(selectedOfferChipId, selectedDebtChipId);
+      setShowChipOfferModal(false);
+      setSelectedDebtChipId(null);
+      setSelectedOfferChipId('');
+      await loadBetChips();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to set payment method');
+      setError(err.response?.data?.error || 'Failed to offer chip');
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleMarkWalletPaid = async (entryId) => {
+  const handleChipAccept = async (chipId) => {
     setActionLoading(true);
     try {
-      await markWalletPaid(entryId);
-      await loadWalletEntries();
+      await acceptChip(chipId);
+      await loadBetChips();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to mark as paid');
+      setError(err.response?.data?.error || 'Failed to accept chip');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleChipDecline = async (chipId) => {
+    setActionLoading(true);
+    try {
+      await declineChip(chipId);
+      await loadBetChips();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to decline chip');
     } finally {
       setActionLoading(false);
     }
@@ -282,62 +305,71 @@ export default function BetDetail() {
     });
   };
 
-  const STATUS_LABELS = {
-    awaiting_method: 'Awaiting Method',
-    on_tab: 'On Tab',
-    payment_pending: 'Payment Pending',
-    paid: 'Paid'
+  const CHIP_STATUS_LABELS = {
+    active: 'Active',
+    offered: 'Offered',
+    voided: 'Voided',
+    staked: 'Staked'
   };
 
-  const renderWalletSection = () => {
-    if (walletEntries.length === 0) return null;
+  const renderChipSection = () => {
+    if (betChips.length === 0) return null;
 
     return (
-      <div className="bet-section wallet-section">
-        <h3>Payment</h3>
-        {walletEntries.map(entry => {
-          const isDebtor = entry.debtor_id === user?.id;
-          const isCreditor = entry.creditor_id === user?.id;
+      <div className="bet-section chip-section">
+        <h3>Chips</h3>
+        {betChips.map(chip => {
+          const isHolder = chip.holder_id === user?.id;
+          const isDebtor = chip.debtor_id === user?.id;
+          // Check if this is an offered chip where we're the creditor
+          const isPendingForMe = chip.status === 'offered' && chip.offered_to_chip_id &&
+            betChips.find(dc => dc.id === chip.offered_to_chip_id && dc.holder_id === user?.id);
 
           return (
-            <div key={entry.id} className="wallet-entry-inline">
-              <div className="wallet-inline-info">
-                <span className="wallet-inline-person">
-                  {isDebtor ? `You owe ${entry.creditor_name}` : `${entry.debtor_name} owes you`}
+            <div key={chip.id} className="chip-entry-inline">
+              <div className="chip-inline-info">
+                <span className="chip-inline-person">
+                  {isDebtor ? `You owe ${chip.holder_name}` : `${chip.debtor_name} owes ${isHolder ? 'you' : chip.holder_name}`}
                 </span>
-                <span className="wallet-inline-prize">{entry.prize_description}</span>
-                <span className={`wallet-status ${entry.status}`}>
-                  {STATUS_LABELS[entry.status]}
+                <span className="chip-inline-prize">{chip.prize_description}</span>
+                <span className={`chip-status ${chip.status}`}>
+                  {CHIP_STATUS_LABELS[chip.status]}
                 </span>
               </div>
 
-              {isDebtor && entry.status === 'awaiting_method' && (
-                <div className="wallet-inline-actions">
+              {/* Debtor can offer a chip to pay */}
+              {isDebtor && chip.status === 'active' && heldChips.length > 0 && (
+                <div className="chip-inline-actions">
                   <button
-                    className="btn btn-tab"
-                    onClick={() => handleSetPaymentMethod(entry.id, 'on_tab')}
+                    className="btn btn-offer"
+                    onClick={() => {
+                      setSelectedDebtChipId(chip.id);
+                      setSelectedOfferChipId('');
+                      setShowChipOfferModal(true);
+                    }}
                     disabled={actionLoading}
                   >
-                    Put on Tab
-                  </button>
-                  <button
-                    className="btn btn-sending"
-                    onClick={() => handleSetPaymentMethod(entry.id, 'payment_pending')}
-                    disabled={actionLoading}
-                  >
-                    Sending Payment
+                    Pay with Chip
                   </button>
                 </div>
               )}
 
-              {isCreditor && (entry.status === 'on_tab' || entry.status === 'payment_pending') && (
-                <div className="wallet-inline-actions">
+              {/* Creditor can accept/decline offered chip */}
+              {isPendingForMe && (
+                <div className="chip-inline-actions">
                   <button
-                    className="btn btn-mark-paid"
-                    onClick={() => handleMarkWalletPaid(entry.id)}
+                    className="btn btn-accept"
+                    onClick={() => handleChipAccept(chip.id)}
                     disabled={actionLoading}
                   >
-                    Mark as Paid
+                    Accept
+                  </button>
+                  <button
+                    className="btn btn-decline-chip"
+                    onClick={() => handleChipDecline(chip.id)}
+                    disabled={actionLoading}
+                  >
+                    Decline
                   </button>
                 </div>
               )}
@@ -452,7 +484,7 @@ export default function BetDetail() {
             </div>
           )}
 
-          {isCompleted && renderWalletSection()}
+          {isCompleted && renderChipSection()}
 
           {/* Trash Talk Section */}
           <div className="bet-section trash-talk-section">
@@ -802,7 +834,7 @@ export default function BetDetail() {
           </div>
         )}
 
-        {isCompleted && renderWalletSection()}
+        {isCompleted && renderChipSection()}
 
         {bet.disputed_at && (
           <div className="bet-section disputed-section">
@@ -1071,6 +1103,49 @@ export default function BetDetail() {
                 disabled={actionLoading || !trashTalkMessage.trim()}
               >
                 {actionLoading ? 'Sending...' : 'Send'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showChipOfferModal && (
+        <div className="modal-overlay" onClick={() => setShowChipOfferModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Pay with Chip</h2>
+            <p>Select a chip you hold to offer as payment for this debt.</p>
+
+            <div className="form-group">
+              <label>Choose a Chip</label>
+              <div className="offer-chip-list">
+                {heldChips.map(chip => (
+                  <label key={chip.id} className="radio-option">
+                    <input
+                      type="radio"
+                      name="offerChip"
+                      value={chip.id}
+                      checked={selectedOfferChipId === String(chip.id)}
+                      onChange={(e) => setSelectedOfferChipId(e.target.value)}
+                    />
+                    <span>
+                      <strong>{chip.prize_description}</strong>
+                      <small> (owed by {chip.debtor_name}, from {chip.bet_title})</small>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn btn-outline" onClick={() => setShowChipOfferModal(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleChipOffer}
+                disabled={actionLoading || !selectedOfferChipId}
+              >
+                {actionLoading ? 'Offering...' : 'Offer Chip'}
               </button>
             </div>
           </div>

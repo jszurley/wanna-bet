@@ -72,6 +72,73 @@ textarea {
   color: white;
 }
 
+/* Stake Toggle */
+.stake-toggle {
+  display: flex;
+  gap: 0;
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.toggle-btn-sm {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: var(--background);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn-sm:hover {
+  background: var(--border);
+}
+
+.toggle-btn-sm.active {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.stake-chip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.stake-chip-list .radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--background);
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+
+.stake-chip-list .radio-option:hover {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.stake-chip-list .radio-option input {
+  width: auto;
+  margin: 0;
+  margin-top: 0.125rem;
+}
+
+.stake-chip-list .radio-option small {
+  display: block;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
 /* Options List for Group Bets */
 .options-list {
   display: flex;

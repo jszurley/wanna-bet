@@ -1,5 +1,5 @@
 const pool = require('../config/db');
-const Wallet = require('./Wallet');
+const Chip = require('./Chip');
 
 const GroupBet = {
   async create(creatorId, title, description, prizeDescription, startDate, endDate, options, invitedUserIds, creatorOptionIndex) {
@@ -173,9 +173,9 @@ const GroupBet = {
       );
       const loserIds = losersResult.rows.map(r => r.user_id);
 
-      // Create wallet entries for losers (creditor = bet creator)
+      // Create chips for losers (holder = bet creator)
       if (loserIds.length > 0) {
-        await Wallet.createGroupEntries(client, betId, creatorId, loserIds, prizeDescription);
+        await Chip.createGroupChips(client, betId, creatorId, loserIds, prizeDescription);
       }
 
       await client.query('COMMIT');

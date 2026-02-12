@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getConnections, createBet } from '../services/api';
+import { getConnections, createBet, getHeldChips } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import './CreateBet.css';
 
@@ -12,6 +12,9 @@ export default function CreateBet() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [betType, setBetType] = useState('1v1');
+  const [stakeMode, setStakeMode] = useState('new');
+  const [heldChips, setHeldChips] = useState([]);
+  const [stakedChipId, setStakedChipId] = useState('');
 
   // 1v1 bet form data
   const [formData, setFormData] = useState({
@@ -37,15 +40,19 @@ export default function CreateBet() {
   });
 
   useEffect(() => {
-    loadConnections();
+    loadData();
   }, []);
 
-  const loadConnections = async () => {
+  const loadData = async () => {
     try {
-      const response = await getConnections();
-      setConnections(response.data);
+      const [connRes, chipsRes] = await Promise.all([
+        getConnections(),
+        getHeldChips()
+      ]);
+      setConnections(connRes.data);
+      setHeldChips(chipsRes.data);
     } catch (err) {
-      setError('Failed to load connections');
+      setError('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -145,15 +152,22 @@ export default function CreateBet() {
           creatorOptionIndex: groupFormData.creatorOptionIndex
         });
       } else {
-        await createBet({
+        const betData = {
           opponentId: parseInt(formData.opponentId),
           title: formData.title,
           description: formData.description,
-          prizeDescription: formData.prizeDescription,
           creatorSide: formData.creatorSide,
           startDate: formData.startDate,
           endDate: formData.endDate
-        });
+        };
+        if (stakeMode === 'chip' && stakedChipId) {
+          betData.stakedChipId = parseInt(stakedChipId);
+          // Prize comes from chip, but send empty string so server uses chip prize
+          betData.prizeDescription = '';
+        } else {
+          betData.prizeDescription = formData.prizeDescription;
+        }
+        await createBet(betData);
       }
       navigate('/');
     } catch (err) {
@@ -263,16 +277,54 @@ export default function CreateBet() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="prizeDescription">Prize / Stakes</label>
-                <textarea
-                  id="prizeDescription"
-                  name="prizeDescription"
-                  value={formData.prizeDescription}
-                  onChange={handleChange}
-                  required
-                  rows={2}
-                  placeholder="What does the loser owe the winner?"
-                />
+                <label>Prize / Stakes</label>
+                {heldChips.length > 0 && (
+                  <div className="stake-toggle">
+                    <button
+                      type="button"
+                      className={`toggle-btn-sm ${stakeMode === 'new' ? 'active' : ''}`}
+                      onClick={() => { setStakeMode('new'); setStakedChipId(''); }}
+                    >
+                      New Prize
+                    </button>
+                    <button
+                      type="button"
+                      className={`toggle-btn-sm ${stakeMode === 'chip' ? 'active' : ''}`}
+                      onClick={() => setStakeMode('chip')}
+                    >
+                      Stake a Chip
+                    </button>
+                  </div>
+                )}
+                {stakeMode === 'new' ? (
+                  <textarea
+                    id="prizeDescription"
+                    name="prizeDescription"
+                    value={formData.prizeDescription}
+                    onChange={handleChange}
+                    required={stakeMode === 'new'}
+                    rows={2}
+                    placeholder="What does the loser owe the winner?"
+                  />
+                ) : (
+                  <div className="stake-chip-list">
+                    {heldChips.map(chip => (
+                      <label key={chip.id} className="radio-option">
+                        <input
+                          type="radio"
+                          name="stakeChip"
+                          value={chip.id}
+                          checked={stakedChipId === String(chip.id)}
+                          onChange={(e) => setStakedChipId(e.target.value)}
+                        />
+                        <span>
+                          <strong>{chip.prize_description}</strong>
+                          <small> (owed by {chip.debtor_name}, from {chip.bet_title})</small>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="form-group">

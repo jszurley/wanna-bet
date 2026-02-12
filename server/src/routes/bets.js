@@ -1,9 +1,11 @@
 const express = require('express');
+const pool = require('../config/db');
 const Bet = require('../models/Bet');
 const GroupBet = require('../models/GroupBet');
 const Connection = require('../models/Connection');
 const TrashTalk = require('../models/TrashTalk');
 const User = require('../models/User');
+const Chip = require('../models/Chip');
 const sms = require('../services/sms');
 const auth = require('../middleware/auth');
 
@@ -160,7 +162,7 @@ router.get('/:id', auth, async (req, res) => {
 // Create bet (1v1 or group)
 router.post('/', auth, async (req, res) => {
   try {
-    const { betType, opponentId, title, description, prizeDescription, startDate, endDate, creatorSide, options, invitedUserIds, creatorOptionIndex } = req.body;
+    const { betType, opponentId, title, description, prizeDescription, startDate, endDate, creatorSide, options, invitedUserIds, creatorOptionIndex, stakedChipId } = req.body;
 
     // Validate dates
     const start = new Date(startDate);
@@ -218,7 +220,26 @@ router.post('/', auth, async (req, res) => {
     }
 
     // Handle 1v1 bet creation (existing logic)
-    if (!opponentId || !title || !description || !prizeDescription || !startDate || !endDate || !creatorSide) {
+    // When staking a chip, prize comes from chip
+    let actualPrize = prizeDescription;
+    let validatedChipId = null;
+
+    if (stakedChipId) {
+      const chip = await Chip.findById(stakedChipId);
+      if (!chip) {
+        return res.status(404).json({ error: 'Staked chip not found' });
+      }
+      if (chip.holder_id !== req.user.id) {
+        return res.status(403).json({ error: 'You do not hold this chip' });
+      }
+      if (chip.status !== 'active') {
+        return res.status(400).json({ error: 'Chip is not available for staking' });
+      }
+      actualPrize = chip.prize_description;
+      validatedChipId = chip.id;
+    }
+
+    if (!opponentId || !title || !description || !actualPrize || !startDate || !endDate || !creatorSide) {
       return res.status(400).json({ error: 'All fields are required including your side of the bet' });
     }
 
@@ -234,11 +255,17 @@ router.post('/', auth, async (req, res) => {
       opponentId,
       title,
       description,
-      prizeDescription,
+      actualPrize,
       startDate,
       endDate,
       creatorSide
     );
+
+    // Handle staked chip
+    if (validatedChipId) {
+      await Chip.stakeInBet(validatedChipId, bet.id);
+      await pool.query('UPDATE bets SET staked_chip_id = $1 WHERE id = $2', [validatedChipId, bet.id]);
+    }
 
     // Send SMS notification to opponent
     const creator = await User.findById(req.user.id);
@@ -299,6 +326,11 @@ router.post('/:id/decline', auth, async (req, res) => {
 
     if (bet.opponent_agreed) {
       return res.status(400).json({ error: 'Cannot decline a locked bet' });
+    }
+
+    // Unstake chip if bet had one
+    if (bet.staked_chip_id) {
+      await Chip.unstakeChip(bet.staked_chip_id);
     }
 
     await Bet.decline(bet.id, req.user.id);

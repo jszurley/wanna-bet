@@ -24,7 +24,7 @@ export default function Navbar() {
             Connections
           </Link>
           <Link to="/wallet" className={`nav-link ${isActive('/wallet') ? 'active' : ''}`}>
-            Wallet
+            Chips
           </Link>
         </div>
 
