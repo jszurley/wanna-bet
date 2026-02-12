@@ -48,6 +48,15 @@ CREATE TABLE bets (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Trash talk (comments) on bets
+CREATE TABLE trash_talk (
+    id SERIAL PRIMARY KEY,
+    bet_id INTEGER REFERENCES bets(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for performance
 CREATE INDEX idx_connections_requester ON connections(requester_id);
 CREATE INDEX idx_connections_recipient ON connections(recipient_id);
@@ -55,3 +64,4 @@ CREATE INDEX idx_connections_status ON connections(status);
 CREATE INDEX idx_bets_creator ON bets(creator_id);
 CREATE INDEX idx_bets_opponent ON bets(opponent_id);
 CREATE INDEX idx_bets_dates ON bets(start_date, end_date);
+CREATE INDEX idx_trash_talk_bet ON trash_talk(bet_id);

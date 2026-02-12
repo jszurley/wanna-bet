@@ -384,16 +384,26 @@ router.post('/:id/resolve', auth, async (req, res) => {
 // Get trash talk for a bet
 router.get('/:id/trash-talk', auth, async (req, res) => {
   try {
-    const bet = await Bet.findById(req.params.id);
-    if (!bet) {
-      return res.status(404).json({ error: 'Bet not found' });
+    const betId = req.params.id;
+
+    // Try loading as 1v1 bet first, then as group bet
+    let bet = await Bet.findById(betId);
+    if (bet) {
+      if (bet.creator_id !== req.user.id && bet.opponent_id !== req.user.id) {
+        return res.status(403).json({ error: 'Not authorized' });
+      }
+    } else {
+      bet = await GroupBet.findById(betId);
+      if (!bet) {
+        return res.status(404).json({ error: 'Bet not found' });
+      }
+      const isParticipant = await GroupBet.isParticipant(betId, req.user.id);
+      if (!isParticipant) {
+        return res.status(403).json({ error: 'Not authorized' });
+      }
     }
 
-    if (bet.creator_id !== req.user.id && bet.opponent_id !== req.user.id) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
-
-    const trashTalk = await TrashTalk.findByBet(bet.id);
+    const trashTalk = await TrashTalk.findByBet(betId);
     res.json(trashTalk);
   } catch (error) {
     console.error('Get trash talk error:', error);
@@ -405,24 +415,33 @@ router.get('/:id/trash-talk', auth, async (req, res) => {
 router.post('/:id/trash-talk', auth, async (req, res) => {
   try {
     const { message } = req.body;
-    const bet = await Bet.findById(req.params.id);
+    const betId = req.params.id;
 
-    if (!bet) {
-      return res.status(404).json({ error: 'Bet not found' });
-    }
-
-    if (bet.creator_id !== req.user.id && bet.opponent_id !== req.user.id) {
-      return res.status(403).json({ error: 'Not authorized' });
+    // Try loading as 1v1 bet first, then as group bet
+    let bet = await Bet.findById(betId);
+    if (bet) {
+      if (bet.creator_id !== req.user.id && bet.opponent_id !== req.user.id) {
+        return res.status(403).json({ error: 'Not authorized' });
+      }
+    } else {
+      bet = await GroupBet.findById(betId);
+      if (!bet) {
+        return res.status(404).json({ error: 'Bet not found' });
+      }
+      const isParticipant = await GroupBet.isParticipant(betId, req.user.id);
+      if (!isParticipant) {
+        return res.status(403).json({ error: 'Not authorized' });
+      }
     }
 
     if (!message || !message.trim()) {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    const trashTalk = await TrashTalk.create(bet.id, req.user.id, message.trim());
+    const trashTalk = await TrashTalk.create(betId, req.user.id, message.trim());
 
     // Return with user name
-    const result = await TrashTalk.findByBet(bet.id);
+    const result = await TrashTalk.findByBet(betId);
     const created = result.find(t => t.id === trashTalk.id);
     res.status(201).json(created);
   } catch (error) {
