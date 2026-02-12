@@ -28,7 +28,8 @@ export default function Wallet() {
       const response = await getWalletEntries();
       setEntries(response.data);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to load wallet entries');
+      console.error('Wallet load error:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to load wallet entries');
     } finally {
       setLoading(false);
     }
