@@ -30,6 +30,7 @@ export default function BetDetail() {
   const [selectedOptionId, setSelectedOptionId] = useState('');
   const [showSetWinnerModal, setShowSetWinnerModal] = useState(false);
   const [winningOptionId, setWinningOptionId] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     loadBet();
@@ -268,27 +269,23 @@ export default function BetDetail() {
             <p className="creator-name">{bet.creator_name}</p>
           </div>
 
-          <div className="bet-section">
-            <h3>Description</h3>
-            <p>{bet.description}</p>
-          </div>
-
-          <div className="bet-section">
-            <h3>Stakes / Prize</h3>
-            <p className="prize-text">{bet.prize_description}</p>
+          <div className="bet-info-grid">
+            <div className="bet-section">
+              <h3>Description</h3>
+              <p>{bet.description}</p>
+            </div>
+            <div className="bet-section">
+              <h3>Stakes / Prize</h3>
+              <p className="prize-text">{bet.prize_description}</p>
+            </div>
           </div>
 
           <div className="bet-section">
             <h3>Timeline</h3>
             <div className="dates">
-              <div>
-                <span className="date-label">Start</span>
-                <span>{formatDate(bet.start_date)}</span>
-              </div>
-              <div>
-                <span className="date-label">End</span>
-                <span>{formatDate(bet.end_date)}</span>
-              </div>
+              <span><span className="date-label">Start:</span> {formatDate(bet.start_date)}</span>
+              <span className="date-separator">—</span>
+              <span><span className="date-label">End:</span> {formatDate(bet.end_date)}</span>
             </div>
           </div>
 
@@ -312,7 +309,7 @@ export default function BetDetail() {
 
           <div className="bet-section participants-section">
             <h3>Participants ({joinedParticipants.length} joined)</h3>
-            <div className="participants-display">
+            <div className="participants-display compact">
               {bet.participants?.map((p) => (
                 <div key={p.id} className={`participant-card ${p.status}`}>
                   <span className="participant-name">
@@ -588,33 +585,32 @@ export default function BetDetail() {
           )}
         </div>
 
-        <div className="bet-section">
-          <h3>Description</h3>
-          <p>{bet.description}</p>
-        </div>
-
-        <div className="bet-section">
-          <h3>Stakes / Prize</h3>
-          <p className="prize-text">{bet.prize_description}</p>
+        <div className="bet-info-grid">
+          <div className="bet-section">
+            <h3>Description</h3>
+            <p>{bet.description}</p>
+          </div>
+          <div className="bet-section">
+            <h3>Stakes / Prize</h3>
+            <p className="prize-text">{bet.prize_description}</p>
+          </div>
         </div>
 
         <div className="bet-section">
           <h3>Timeline</h3>
           <div className="dates">
-            <div>
-              <span className="date-label">Start</span>
-              <span>{formatDate(bet.start_date)}</span>
-            </div>
-            <div>
-              <span className="date-label">End</span>
-              <span>{formatDate(bet.end_date)}</span>
-            </div>
+            <span><span className="date-label">Start:</span> {formatDate(bet.start_date)}</span>
+            <span className="date-separator">—</span>
+            <span><span className="date-label">End:</span> {formatDate(bet.end_date)}</span>
           </div>
         </div>
 
         <div className="bet-section history-section">
-          <h3>History</h3>
-          <div className="history-timeline">
+          <div className="history-toggle" onClick={() => setShowHistory(!showHistory)}>
+            <h3>History</h3>
+            <span className={`history-chevron ${showHistory ? 'expanded' : ''}`}>&#9654;</span>
+          </div>
+          {showHistory && <div className="history-timeline">
             <div className="history-entry">
               <span className="history-action">Bet created by {bet.creator_name}</span>
               <span className="history-time">{formatDateTime(bet.created_at)}</span>
@@ -691,7 +687,7 @@ export default function BetDetail() {
                 <span className="history-time">{formatDateTime(bet.rejected_at)}</span>
               </div>
             )}
-          </div>
+          </div>}
         </div>
 
         {bet.winner_name && (
