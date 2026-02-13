@@ -129,6 +129,9 @@ export default function Register() {
           <p>
             Already have an account? <Link to="/login">Sign in</Link>
           </p>
+          <p className="auth-legal">
+            By creating an account, you agree to our <Link to="/privacy-policy">Privacy Policy</Link>
+          </p>
         </div>
       </div>
     </div>

@@ -59,6 +59,11 @@
   color: var(--text-secondary);
 }
 
+.auth-legal {
+  font-size: 0.8125rem;
+  margin-top: 0.5rem;
+}
+
 .password-requirements {
   margin-top: 0.5rem;
   padding: 0.5rem;
