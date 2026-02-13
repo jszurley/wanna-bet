@@ -269,7 +269,7 @@ const initializeDatabase = async () => {
 
     console.log('Database migrations complete');
   } catch (error) {
-    console.error('Database initialization error:', error.message);
+    console.error('Database initialization error:', error.message || error);
   }
 };
 
