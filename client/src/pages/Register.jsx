@@ -130,7 +130,7 @@ export default function Register() {
             Already have an account? <Link to="/login">Sign in</Link>
           </p>
           <p className="auth-legal">
-            By creating an account, you agree to our <Link to="/privacy-policy">Privacy Policy</Link>
+            By creating an account, you agree to our <Link to="/terms-and-conditions">Terms</Link> and <Link to="/privacy-policy">Privacy Policy</Link>
           </p>
         </div>
       </div>

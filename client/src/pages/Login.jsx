@@ -74,7 +74,7 @@ export default function Login() {
             Don't have an account? <Link to="/register">Sign up</Link>
           </p>
           <p className="auth-legal">
-            <Link to="/privacy-policy">Privacy Policy</Link>
+            <Link to="/privacy-policy">Privacy Policy</Link> &middot; <Link to="/terms-and-conditions">Terms</Link>
           </p>
         </div>
       </div>

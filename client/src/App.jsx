@@ -12,6 +12,7 @@ import BetDetail from './pages/BetDetail';
 import Profile from './pages/Profile';
 import Wallet from './pages/Wallet';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsAndConditions from './pages/TermsAndConditions';
 
 function App() {
   const { user, loading } = useAuth();
@@ -37,6 +38,7 @@ function App() {
             element={user ? <Navigate to="/" replace /> : <Register />}
           />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
 
           {/* Protected routes */}
           <Route
