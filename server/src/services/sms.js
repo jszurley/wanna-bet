@@ -1,44 +1,10 @@
-// SMS Service using Twilio
-// Requires environment variables: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER
+// SMS Service — currently disabled (no provider configured)
 
-let twilioClient = null;
-
-// Lazy initialization to avoid errors when Twilio is not configured
-const getClient = () => {
-  if (!twilioClient && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-    const twilio = require('twilio');
-    twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-  }
-  return twilioClient;
-};
-
-const isConfigured = () => {
-  return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER);
-};
+const isConfigured = () => false;
 
 const sendSMS = async (to, message) => {
-  if (!isConfigured()) {
-    console.log('SMS not configured. Would send to', to, ':', message);
-    return { success: false, reason: 'not_configured' };
-  }
-
-  const client = getClient();
-  if (!client) {
-    return { success: false, reason: 'client_init_failed' };
-  }
-
-  try {
-    const result = await client.messages.create({
-      body: message,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: to
-    });
-    console.log('SMS sent:', result.sid);
-    return { success: true, sid: result.sid };
-  } catch (error) {
-    console.error('SMS send error:', error.message);
-    return { success: false, reason: error.message };
-  }
+  console.log('SMS disabled. Would send to', to, ':', message);
+  return { success: false, reason: 'sms_disabled' };
 };
 
 // Notification templates
